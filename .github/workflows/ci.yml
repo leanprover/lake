@@ -31,7 +31,7 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         path-type: inherit
-        install: curl unzip make
+        install: curl unzip make mingw-w64-x86_64-gcc
     - name: Install Elan (Windows)
       if: matrix.os == 'windows-latest'
       run: |
@@ -60,12 +60,16 @@ jobs:
         name: Build
         path: build
     - name: Check Lake
-      run: make -C examples check-lake
+      run: |
+        chmod +x ./build/bin/lake
+        make -C examples check-lake
     - name: Test Examples
       run: make -C examples test -j4
     - name: Time Bootstrap
       run: make -C examples time-bootstrap
     - name: Check Bootstrap
-      run: make -C examples check-bootstrap
+      run: |
+        chmod +x ./examples/bootstrap/build/bin/lake
+        make -C examples check-bootstrap
     - name: Test Bootstrapped Examples
       run: make -C examples test-bootstrapped -j4
