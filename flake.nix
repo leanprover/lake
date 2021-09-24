@@ -45,7 +45,7 @@
       # `nix develop`
       devShell = pkgs.mkShell {
         buildInputs = with pkgs; [
-          lean-pkgs.lean
+          leanPkgs.lean
         ];
       };
     });
