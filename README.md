@@ -5,6 +5,12 @@ With Lake, package configuration is written in Lean inside a dedicated `lakefile
 
 ## Building and Running Lake
 
+To build `lake` from source you will need to install dependencies first.
+Make sure you have [`elan`](https://github.com/leanprover/elan) installed (which will provide Lean 4).
+On ubuntu the build dependencies can be obtained with
+`apt-get install -y build-essential libgmp-dev`
+(unfortunately the Lean4 dependencies aren't enough; building `lake` also requires `build-essential`).
+
 As Lake functions as an alternative to `leanpkg`, it is not built with it. Instead, there is a pre-packaged `build.sh` shell script which is used to build Lake. It passes it arguments down to a `make` command. So, if you have more than one core, you will probably want to use a `-jX` option to specify how many build tasks you want it to run in parallel. For example:
 
 ```shell
