@@ -95,7 +95,12 @@ Workspace options are shared across a package and its dependencies.
 ### General
 
 * `name` **(Required)**: The `Name` of the package.
-* `dependencies`: An `Array` of the package's dependencies.
+* `dependencies`: An `Array` of the package's dependencies. A typical usage is
+```
+  dependencies :=
+  #[{ name := "mathlib4",
+      src := Source.git "https://github.com/leanprover-community/mathlib4.git" "master", }],
+```
 * `extraDepTarget`: An extra `OpaqueTarget` that should be built before the package. `OpaqueTarget.collectList/collectArray` can be used combine multiple extra targets into a single `extraDepTarget`.
 * `defaultFacet`: The `PackageFacet` to build on a bare `lake build` of the package. Can be one of `bin`, `staticLib`, `sharedLib`, or `oleans`. Defaults to `bin`. See `lake help build` for more info on build facets.
 * `moreServerArgs`:  Additional arguments to pass to the Lean language server (i.e., `lean --server`) launched by `lake server`.
