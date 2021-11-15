@@ -2,38 +2,8 @@
 
 Lake (Lean Make) is a new build system and package manager for Lean 4.
 With Lake, package configuration is written in Lean inside a dedicated `lakefile.lean` stored in the root of the package directory. Each `lakefile.lean` includes a `package` declaration (akin to `main`) which defines the package's configuration.
-
-## Building and Running Lake
-
-If you already have a Lean installation with `lake` packaged with it, you can build a new `lake` by just running `lake build`.
-
-Otherwise, there is a pre-packaged `build.sh` shell script that can be used to build Lake. It passes it arguments down to a `make` command. So, if you have more than one core, you will probably want to use a `-jX` option to specify how many build tasks you want it to run in parallel. For example:
-
-```shell
-$ ./build.sh -j4
-```
-
-After building, the `lake` binary will be located at `build/bin/lake` and the library's `.olean` files will be located in `build/lib`.
-
-### Building with Nix Flakes
-
-It is also possible to build Lake with the Nix setup `buildLeanPackage` from the [`leanprover/lean4`](https://github.com/leanprover/lean4) repository. To do so, you need to have Nix installed with flakes enabled. It is recommended to also set up the Lean 4 binary cache as described in the Lean 4 repository.
-
-It is then possible to build Lake with `nix build .` or run it from anywhere with `nix run github:leanprover/lake`.
-
-A development environment with Lean 4 installed can be loaded automatically by running `nix develop` or automatically on `cd` with `direnv` by running `direnv allow`.
-
-The versions of `nixpkgs` and `lean4` are fixed to specific hashes. They can be updated by running `nix flake update`.
-
-Thank Anders Christiansen Sørby ([@Anderssorby](https://github.com/Anderssorby)) for this support!
-
-### Augmenting Lake's Search Path
-
-The `lake` executable needs to know where to find the `.olean` files for the modules used in the package configuration file. Lake will intelligently setup an initial search path based on the location of its own executable and `lean`.
-
-Specifically, if Lake is co-located with `lean` (i.e., there is `lean` executable in the same directory as itself), it will assume it was installed with Lean and that both Lean and Lake are located in `<lean-home>/bin` with Lean's `.olean` files at `<lean-home/lib/lean` and Lake's `.olean` files at `<lean-home/lib/lean`. Otherwise, it will run `lean --print-prefix` to find Lean's home and assume that its `.olean` files are at `<lean-home>/lib/lean` and that `lake` is at `<lake-home>/bin/lake` with its `.olean` files at `<lake-home>/lib`.
-
-This search path can be augmented by including other directories of `.olean` files in the `LEAN_PATH` environment variable. Such directories will take precedence over the initial search path, so `LEAN_PATH` can also be used to correct Lake's search if the `.olean` files for Lean (or Lake itself) are in non-standard locations.
+Lake is distributed along with Lean 4, so if you have installed Lean 4 using [`elan`](https://github.com/leanprover/elan#readme)
+you will already be able to run `lake`. Instructions for building from source are at the bottom of this README.
 
 ## Creating and Building a Package
 
@@ -165,3 +135,37 @@ USAGE:
 
 Greet the entity with the given name. Otherwise, greet the whole world.
 ```
+
+## Building Lake from source
+
+If you already have a Lean installation with `lake` packaged with it, you can build a new `lake` by just running `lake build`
+in a checkout of this repository.
+
+Otherwise, there is a pre-packaged `build.sh` shell script that can be used to build Lake. It passes it arguments down to a `make` command. So, if you have more than one core, you will probably want to use a `-jX` option to specify how many build tasks you want it to run in parallel. For example:
+
+```shell
+$ ./build.sh -j4
+```
+
+After building, the `lake` binary will be located at `build/bin/lake` and the library's `.olean` files will be located in `build/lib`.
+
+### Building with Nix Flakes
+
+It is also possible to build Lake with the Nix setup `buildLeanPackage` from the [`leanprover/lean4`](https://github.com/leanprover/lean4) repository. To do so, you need to have Nix installed with flakes enabled. It is recommended to also set up the Lean 4 binary cache as described in the Lean 4 repository.
+
+It is then possible to build Lake with `nix build .` or run it from anywhere with `nix run github:leanprover/lake`.
+
+A development environment with Lean 4 installed can be loaded automatically by running `nix develop` or automatically on `cd` with `direnv` by running `direnv allow`.
+
+The versions of `nixpkgs` and `lean4` are fixed to specific hashes. They can be updated by running `nix flake update`.
+
+Thank Anders Christiansen Sørby ([@Anderssorby](https://github.com/Anderssorby)) for this support!
+
+### Augmenting Lake's Search Path
+
+The `lake` executable needs to know where to find the `.olean` files for the modules used in the package configuration file. Lake will intelligently setup an initial search path based on the location of its own executable and `lean`.
+
+Specifically, if Lake is co-located with `lean` (i.e., there is `lean` executable in the same directory as itself), it will assume it was installed with Lean and that both Lean and Lake are located in `<lean-home>/bin` with Lean's `.olean` files at `<lean-home/lib/lean` and Lake's `.olean` files at `<lean-home/lib/lean`. Otherwise, it will run `lean --print-prefix` to find Lean's home and assume that its `.olean` files are at `<lean-home>/lib/lean` and that `lake` is at `<lake-home>/bin/lake` with its `.olean` files at `<lake-home>/lib`.
+
+This search path can be augmented by including other directories of `.olean` files in the `LEAN_PATH` environment variable. Such directories will take precedence over the initial search path, so `LEAN_PATH` can also be used to correct Lake's search if the `.olean` files for Lean (or Lake itself) are in non-standard locations.
+
