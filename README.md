@@ -94,7 +94,7 @@ Workspace options are shared across a package and its dependencies.
 
 ### General
 
-* `name` **(Required)**: The `Name` of the package.
+* `name` : The `Name` of the package. (This is usually specified instead using the identifier following `package` in `lakefile.lean`.)
 * `dependencies`: An `Array` of the package's dependencies.
 * `extraDepTarget`: An extra `OpaqueTarget` that should be built before the package. `OpaqueTarget.collectList/collectArray` can be used combine multiple extra targets into a single `extraDepTarget`.
 * `defaultFacet`: The `PackageFacet` to build on a bare `lake build` of the package. Can be one of `bin`, `staticLib`, `sharedLib`, or `oleans`. Defaults to `bin`. See `lake help build` for more info on build facets.
