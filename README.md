@@ -79,7 +79,7 @@ package hello {
 }
 ```
 
-When sourcing from a Git repository, you can pin the version of the dependency package by expliciting its commit hash. The branch name is optional and unadvised if you're not sure whether the branch is ephemeral or not.
+When sourcing from a Git repository, you can pin the version of the dependency package by expliciting its revision, which can be a commit hash, a branch or a tag. The following parameter the branch name, which is optional and unadvised if you're not sure whether the branch is ephemeral or not.
 
 The next run of `lake build` (or refreshing dependencies in an editor like VSCode) will clone the mathlib repository and build it.
 
