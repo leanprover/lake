@@ -65,7 +65,7 @@ Hello, world!
 
 ## Adding Dependencies
 
-Lake packages can also have dependencies. Dependencies are other Lake packages the current package needs in order to function. To define a dependency, add an entry to the `dependencies` field of the package configuration. Each entry includes the name of the package and where to find it. Dependencies can be sourced directly from a local folder (e.g., a subdirectory of the package) or come from remote Git repositions.
+Lake packages can also have dependencies. Dependencies are other Lake packages the current package needs in order to function. To define a dependency, add an entry to the `dependencies` field of the package configuration. Each entry includes the name of the package and where to find it. Dependencies can be sourced directly from a local folder (e.g., a subdirectory of the package) or come from remote Git repositories.
 
 For example, one can depend on the Lean 4 port of [mathlib](https://github.com/leanprover-community/mathlib4) like so:
 
@@ -73,10 +73,13 @@ For example, one can depend on the Lean 4 port of [mathlib](https://github.com/l
 package hello {
   dependencies := #[{
     name := `mathlib
-    src := Source.git "https://github.com/leanprover-community/mathlib4.git" "master"
+    src := Source.git "https://github.com/leanprover-community/mathlib4.git"
+      "d58927f419093716ec8c7c02c3e6423db8942d59" "master"
   }]
 }
 ```
+
+When sourcing from a Git repository, you can pin the version of the dependency package by expliciting its commit hash. The branch name is optional and unadvised if you're not sure whether the branch is temporary or not.
 
 The next run of `lake build` (or refreshing dependencies in an editor like VSCode) will clone the mathlib repository and build it.
 
