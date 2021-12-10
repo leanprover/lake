@@ -38,10 +38,9 @@
       packages.${packageName} = project;
       packages.cli = cli.executable;
 
-      defaultPackage = self.packages.${system}.${packageName};
+      defaultPackage = self.packages.${system}.cli;
 
       apps.lake = flake-utils.lib.mkApp {
-        name = "lake";
         drv = cli.executable;
       };
 
