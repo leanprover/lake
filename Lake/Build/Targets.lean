@@ -3,6 +3,7 @@ Copyright (c) 2021 Mac Malone. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Mac Malone
 -/
+import Lean.Compiler.FFI
 import Lake.Build.Actions
 import Lake.Build.TargetTypes
 
@@ -60,10 +61,18 @@ def staticLibTarget (libFile : FilePath)
   fileTargetWithDepArray libFile oFileTargets fun oFiles => do
     compileStaticLib libFile oFiles (ar.getD (← getLeanAr))
 
-def leanSharedLibTarget (binFile : FilePath)
+def leanSharedLibTarget (libFile : FilePath)
 (linkTargets : Array FileTarget) (linkArgs : Array String := #[]) : FileTarget :=
-  fileTargetWithDepArray binFile linkTargets fun links => do
-    compileSharedLib binFile links linkArgs (← getLeanc)
+  fileTargetWithDepArray libFile linkTargets fun links => do
+    let extraFlags :=
+      if Platform.isOSX then
+        #["-L", (← getLeanLibDir) / "libc" |>.toString]
+      else
+        #["-Wl,-Bstatic", "-lunwind", "-Wl,-Bdynamic"]
+    let args := linkArgs ++
+      #["-L", (← getLeanLibDir).toString] ++ extraFlags ++
+      Lean.Compiler.FFI.getLinkerFlags (← getLeanSysroot) (linkStatic := false)
+    compileSharedLib libFile links args (← getLeanCc)
 
 def binTarget (binFile : FilePath) (linkTargets : Array FileTarget)
 (linkArgs : Array String := #[]) (linker : FilePath := "cc") : FileTarget :=
@@ -73,4 +82,12 @@ def binTarget (binFile : FilePath) (linkTargets : Array FileTarget)
 def leanBinTarget (binFile : FilePath)
 (linkTargets : Array FileTarget) (linkArgs : Array String := #[]) : FileTarget :=
   fileTargetWithDepArray binFile linkTargets fun links => do
-    compileBin binFile links linkArgs (← getLeanc)
+    let extraFlags :=
+      if Platform.isOSX then
+        #["-L", (← getLeanLibDir) / "libc" |>.toString]
+      else
+        #["-Wl,-Bstatic", "-lunwind", "-Wl,-Bdynamic"]
+    let args := linkArgs ++
+      #["-L", (← getLeanLibDir).toString] ++ extraFlags ++
+      Lean.Compiler.FFI.getLinkerFlags (← getLeanSysroot) (linkStatic := true)
+    compileBin binFile links args (← getLeanCc)
