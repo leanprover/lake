@@ -69,11 +69,17 @@ def Package.buildTarget [Inhabited i]
 
 /-- Build the `.olean` files of package and its dependencies' modules. -/
 def Package.buildOleanTarget (self : Package) : SchedulerM ActiveOpaqueTarget := do
-  self.buildTarget <| recBuildModuleOleanTargetWithLocalImports
+  if self.config.precompileModules then
+    self.buildTarget recBuildModulePrecompTargetWithLocalImports
+  else
+    self.buildTarget recBuildModuleOleanTargetWithLocalImports
 
 /-- Build the `.olean` and `.c` files of package and its dependencies' modules. -/
 def Package.buildOleanAndCTarget (self : Package) : SchedulerM ActiveOpaqueTarget := do
-  self.buildTarget <| recBuildModuleOleanAndCTargetWithLocalImports
+  if self.config.precompileModules then
+    self.buildTarget recBuildModulePrecompTargetWithLocalImports
+  else
+    self.buildTarget recBuildModuleOleanAndCTargetWithLocalImports
 
 def Package.buildDepOleans (self : Package) : BuildM PUnit := do
   let targets ← self.dependencies.mapM fun dep => do
@@ -91,14 +97,22 @@ def Package.build (self : Package) : BuildM PUnit := do
 def Package.moduleOleanTarget (mod : Name) (self : Package) : FileTarget :=
   BuildTarget.mk' (self.modToOlean mod) do
     let depTarget ← self.buildExtraDepsTarget
-    let build := recBuildModuleOleanTargetWithLocalImports depTarget
-    return (← buildModule ⟨self, mod⟩ build).task
+    if self.config.precompileModules then
+      let build := recBuildModulePrecompTargetWithLocalImports depTarget
+      return (← buildModule ⟨self, mod⟩ build).task
+    else
+      let build := recBuildModuleOleanTargetWithLocalImports depTarget
+      return (← buildModule ⟨self, mod⟩ build).task
 
 def Package.moduleOleanAndCTarget (mod : Name) (self : Package) : OleanAndCTarget :=
   BuildTarget.mk' ⟨self.modToOlean mod, self.modToC mod⟩ do
     let depTarget ← self.buildExtraDepsTarget
-    let build := recBuildModuleOleanAndCTargetWithLocalImports depTarget
-    return (← buildModule ⟨self, mod⟩ build).task
+    if self.config.precompileModules then
+      let build := recBuildModulePrecompTargetWithLocalImports depTarget
+      return (← buildModule ⟨self, mod⟩ build).task
+    else
+      let build := recBuildModuleOleanAndCTargetWithLocalImports depTarget
+      return (← buildModule ⟨self, mod⟩ build).task
 
 -- # Build Imports
 

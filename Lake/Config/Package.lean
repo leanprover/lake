@@ -263,6 +263,19 @@ structure PackageConfig extends WorkspaceConfig where
   -/
   moreLinkArgs : Array String := #[]
 
+  /--
+  Whether to compile each module into a native shared library that is loaded
+  whenever the module is imported in order to accelerate evaluation. -/
+  precompileModules : Bool := false
+
+  /- TODO
+  /--
+  Whether to compile the package into a native shared library that is loaded
+  whenever *any* of the package's modules is imported into another package. 
+  If `precompileModules` is also `true`, the latter only affects imports within
+  the current package. -/
+  precompilePackage : Bool := precompileModules
+  -/
 deriving Inhabited
 
 --------------------------------------------------------------------------------
@@ -418,6 +431,10 @@ def oDir (self : Package) : FilePath :=
 /-- The path to a module's `.o` file within the package. -/
 def modToO (mod : Name) (self : Package) : FilePath :=
   Lean.modToFilePath self.oDir mod "o"
+
+/-- The path to a module's shared library within the package. -/
+def modToSharedLib (mod : Name) (self : Package) : FilePath :=
+  Lean.modToFilePath self.irDir mod sharedLibExt
 
 /-- The package's `buildDir` joined with its `libDir` configuration. -/
 def libDir (self : Package) : FilePath :=

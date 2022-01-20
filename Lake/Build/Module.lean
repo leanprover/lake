@@ -10,6 +10,7 @@ import Lake.Build.Actions
 import Lake.Build.Recursive
 import Lake.Build.TargetTypes
 import Lake.Config.Package
+import Lake.Build.Targets
 
 open System
 open Lean hiding SearchPath
@@ -153,12 +154,13 @@ def moduleOleanTarget
     return mixTrace (← computeTrace oleanFile) depTrace
 
 protected def Package.moduleOleanAndCTargetOnly (self : Package)
-(mod : Name) (leanFile : FilePath) (contents : String) (depTarget : BuildTarget x) :=
+(mod : Name) (leanFile : FilePath) (contents : String) (loadLibs : Array FilePath) (depTarget : BuildTarget x) :=
   let cFile := self.modToC mod
   let oleanFile := self.modToOlean mod
   let traceFile := self.modToTraceFile mod
+  let args := self.moreLeanArgs ++ loadLibs.map (s!"--load-dynlib={·}")
   moduleOleanAndCTarget leanFile cFile oleanFile traceFile contents
-    depTarget self.rootDir self.moreLeanArgs
+    depTarget self.rootDir args
 
 protected def Package.moduleOleanTargetOnly (self : Package)
 (mod : Name) (leanFile : FilePath) (contents : String) (depTarget : BuildTarget x) :=
@@ -190,13 +192,32 @@ def recBuildModuleWithLocalImports
     recurse ⟨pkg, mod⟩
   build info.pkg info.name info.srcFile contents importTargets
 
+structure ActivePrecompModuleTargets extends ActiveOleanAndCTargets where
+  mod : Name
+  sharedLibTarget : ActiveFileTarget
+deriving Inhabited
+
+def recBuildModulePrecompTargetWithLocalImports
+[Monad m] [MonadLiftT BuildM m] [MonadFunctorT BuildM m] (depTarget : ActiveBuildTarget x)
+: RecBuild ModuleInfo (ActiveBuildTarget ActivePrecompModuleTargets) m :=
+  recBuildModuleWithLocalImports fun pkg mod leanFile contents importTargets => do
+    let importSharedLibTargets := importTargets.map (·.info.sharedLibTarget)
+    let importTarget ← ActiveTarget.collectOpaqueList <| importTargets.map (·.info.oleanTarget) ++ importSharedLibTargets
+    let allDepsTarget := Target.active <| ← depTarget.mixOpaqueAsync importTarget
+    let oleanAndC ← pkg.moduleOleanAndCTargetOnly mod leanFile contents (importSharedLibTargets.toArray.map (·.info)) allDepsTarget
+    let oleanAndC ← oleanAndC.activate
+    let linkTargets := (oleanAndC.cTarget :: importSharedLibTargets).toArray.map Target.active
+    let sharedLibTarget ← leanSharedLibTarget (pkg.modToSharedLib mod) linkTargets
+    let sharedLibTarget ← sharedLibTarget.activate
+    return sharedLibTarget.withInfo { oleanAndC.info with mod, sharedLibTarget }
+
 def recBuildModuleOleanAndCTargetWithLocalImports
 [Monad m] [MonadLiftT BuildM m] [MonadFunctorT BuildM m] (depTarget : ActiveBuildTarget x)
 : RecBuild Module ActiveOleanAndCTarget m :=
   recBuildModuleWithLocalImports fun pkg mod leanFile contents importTargets => do
     let importTarget ← ActiveTarget.collectOpaqueList <| importTargets.map (·.oleanTarget)
     let allDepsTarget := Target.active <| ← depTarget.mixOpaqueAsync importTarget
-    pkg.moduleOleanAndCTargetOnly mod leanFile contents allDepsTarget |>.activate
+    pkg.moduleOleanAndCTargetOnly mod leanFile contents #[] allDepsTarget |>.activate
 
 def recBuildModuleOleanTargetWithLocalImports
 [Monad m] [MonadLiftT BuildM m] [MonadFunctorT BuildM m] (depTarget : ActiveBuildTarget x)
