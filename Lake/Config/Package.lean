@@ -432,14 +432,17 @@ def oDir (self : Package) : FilePath :=
 def modToO (mod : Name) (self : Package) : FilePath :=
   Lean.modToFilePath self.oDir mod "o"
 
-/-- The path to a module's shared library within the package. -/
-def modToSharedLib (mod : Name) (self : Package) : FilePath :=
-  -- NOTE: file name MUST be unique on Windows
-  self.irDir / s!"{mod}.{sharedLibExt}"
-
 /-- The package's `buildDir` joined with its `libDir` configuration. -/
 def libDir (self : Package) : FilePath :=
   self.buildDir / self.config.libDir
+
+/--
+The path to a module's shared library within the package
+(used for precompilation, not intended for outside use).
+-/
+def modToSharedLib (mod : Name) (self : Package) : FilePath :=
+  -- NOTE: file name MUST be unique on Windows
+  self.libDir / s!"{mod}.pre.{sharedLibExt}"
 
 /-- The package's `libName` configuration. -/
 def libName (self : Package) : FilePath :=
