@@ -31,6 +31,7 @@ def compileLeanModule (leanFile : FilePath)
 (oleanFile? ileanFile? cFile? : Option FilePath)
 (oleanPath : SearchPath := []) (rootDir : FilePath := ".")
 (leanArgs : Array String := #[]) (lean : FilePath := "lean")
+(precompiledPath : SearchPath := ∅)
 : BuildM PUnit := do
   let mut args := leanArgs ++
     #[leanFile.toString, "-R", rootDir.toString]
@@ -43,10 +44,15 @@ def compileLeanModule (leanFile : FilePath)
   if let some cFile := cFile? then
     createParentDirs cFile
     args := args ++ #["-c", cFile.toString]
+  let mut env := #[("LEAN_PATH", some oleanPath.toString)]
+  if !precompiledPath.isEmpty && System.Platform.isWindows then
+    let path := (← IO.getEnv "PATH").getD ""
+    -- set up search path for locating dependent DLLs
+    env := env ++ #[("PATH", some (SearchPath.parse path ++ precompiledPath).toString)]
   proc {
-    args,
+    args
     cmd := lean.toString
-    env := #[("LEAN_PATH", oleanPath.toString)]
+    env
   }
 
 def compileO (oFile srcFile : FilePath)

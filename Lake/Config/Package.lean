@@ -434,7 +434,8 @@ def modToO (mod : Name) (self : Package) : FilePath :=
 
 /-- The path to a module's shared library within the package. -/
 def modToSharedLib (mod : Name) (self : Package) : FilePath :=
-  Lean.modToFilePath self.irDir mod sharedLibExt
+  -- NOTE: file name MUST be unique on Windows
+  self.irDir / s!"{mod}.{sharedLibExt}"
 
 /-- The package's `buildDir` joined with its `libDir` configuration. -/
 def libDir (self : Package) : FilePath :=
