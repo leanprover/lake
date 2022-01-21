@@ -160,7 +160,7 @@ protected def Package.moduleOleanAndCTargetOnly (self : Package)
   let traceFile := self.modToTraceFile mod
   let args := self.moreLeanArgs ++ loadLibs.map (s!"--load-dynlib={·}")
   -- TODO: extend with dependent packages when implementing `precompilePackage`
-  let precompiledPath := [self.libDir]
+  let precompiledPath := if loadLibs.isEmpty then [] else [self.libDir]
   moduleOleanAndCTarget leanFile cFile oleanFile traceFile contents
     depTarget self.rootDir args precompiledPath
 
