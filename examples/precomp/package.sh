@@ -1,5 +1,3 @@
 set -ex
 
-cd foo
-${LAKE:-../../../build/bin/lake} build
-cd ..
+(cd bar; ${LAKE:-../../../build/bin/lake} build)
