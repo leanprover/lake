@@ -153,14 +153,14 @@ def moduleOleanTarget
   target.withTask do target.bindSync fun oleanFile depTrace => do
     return mixTrace (← computeTrace oleanFile) depTrace
 
+-- NOTE: `loadLibs` may (transitively) load other precompiled libraries;
+-- `precompiledPath` must contain the directories of all these libraries (on Windows)
 protected def Package.moduleOleanAndCTargetOnly (self : Package)
-(mod : Name) (leanFile : FilePath) (contents : String) (loadLibs : Array FilePath) (depTarget : BuildTarget x) :=
+(mod : Name) (leanFile : FilePath) (contents : String) (loadLibs : Array FilePath) (precompiledPath : SearchPath) (depTarget : BuildTarget x) :=
   let cFile := self.modToC mod
   let oleanFile := self.modToOlean mod
   let traceFile := self.modToTraceFile mod
   let args := self.moreLeanArgs ++ loadLibs.map (s!"--load-dynlib={·}")
-  -- TODO: extend with dependent packages when implementing `precompilePackage`
-  let precompiledPath := if loadLibs.isEmpty then [] else [self.libDir]
   moduleOleanAndCTarget leanFile cFile oleanFile traceFile contents
     depTarget self.rootDir args precompiledPath
 
@@ -205,8 +205,10 @@ def recBuildModulePrecompTargetWithLocalImports
   recBuildModuleWithLocalImports fun pkg mod leanFile contents importTargets => do
     let importSharedLibTargets := importTargets.map (·.info.sharedLibTarget)
     let importTarget ← ActiveTarget.collectOpaqueList <| importTargets.map (·.info.oleanTarget) ++ importSharedLibTargets
+    let loadLibs := importSharedLibTargets.toArray.map (·.info)
+    let precompiledPath := (← getWorkspace).packageList.map (·.libDir)
     let allDepsTarget := Target.active <| ← depTarget.mixOpaqueAsync importTarget
-    let oleanAndC ← pkg.moduleOleanAndCTargetOnly mod leanFile contents (importSharedLibTargets.toArray.map (·.info)) allDepsTarget
+    let oleanAndC ← pkg.moduleOleanAndCTargetOnly mod leanFile contents loadLibs precompiledPath allDepsTarget
     let oleanAndC ← oleanAndC.activate
     let oTarget ← leanOFileTarget (pkg.modToO mod) (Target.active oleanAndC.cTarget) pkg.moreLeancArgs
     let oTarget ← oTarget.activate
@@ -221,7 +223,7 @@ def recBuildModuleOleanAndCTargetWithLocalImports
   recBuildModuleWithLocalImports fun pkg mod leanFile contents importTargets => do
     let importTarget ← ActiveTarget.collectOpaqueList <| importTargets.map (·.oleanTarget)
     let allDepsTarget := Target.active <| ← depTarget.mixOpaqueAsync importTarget
-    pkg.moduleOleanAndCTargetOnly mod leanFile contents #[] allDepsTarget |>.activate
+    pkg.moduleOleanAndCTargetOnly mod leanFile contents #[] [] allDepsTarget |>.activate
 
 def recBuildModuleOleanTargetWithLocalImports
 [Monad m] [MonadLiftT BuildM m] [MonadFunctorT BuildM m] (depTarget : ActiveBuildTarget x)
