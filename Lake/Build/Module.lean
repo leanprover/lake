@@ -208,7 +208,9 @@ def recBuildModulePrecompTargetWithLocalImports
     let allDepsTarget := Target.active <| ← depTarget.mixOpaqueAsync importTarget
     let oleanAndC ← pkg.moduleOleanAndCTargetOnly mod leanFile contents (importSharedLibTargets.toArray.map (·.info)) allDepsTarget
     let oleanAndC ← oleanAndC.activate
-    let linkTargets := (oleanAndC.cTarget :: importSharedLibTargets).toArray.map Target.active
+    let oTarget ← leanOFileTarget (pkg.modToO mod) (Target.active oleanAndC.cTarget) pkg.moreLeancArgs
+    let oTarget ← oTarget.activate
+    let linkTargets := (oTarget :: importSharedLibTargets).toArray.map Target.active
     let sharedLibTarget ← leanSharedLibTarget (pkg.modToSharedLib mod) linkTargets
     let sharedLibTarget ← sharedLibTarget.activate
     return sharedLibTarget.withInfo { oleanAndC.info with mod, sharedLibTarget }
