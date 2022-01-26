@@ -267,15 +267,6 @@ structure PackageConfig extends WorkspaceConfig where
   Whether to compile each module into a native shared library that is loaded
   whenever the module is imported in order to accelerate evaluation. -/
   precompileModules : Bool := false
-
-  /- TODO
-  /--
-  Whether to compile the package into a native shared library that is loaded
-  whenever *any* of the package's modules is imported into another package. 
-  If `precompileModules` is also `true`, the latter only affects imports within
-  the current package. -/
-  precompilePackage : Bool := precompileModules
-  -/
 deriving Inhabited
 
 --------------------------------------------------------------------------------
