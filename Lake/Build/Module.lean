@@ -197,6 +197,8 @@ def recBuildModuleWithLocalImports
 structure ActivePrecompModuleTargets extends ActiveOleanAndCTargets where
   mod : Name
   sharedLibTarget : ActiveFileTarget
+  -- NOTE: used only on Windows
+  allLoadLibs : List FilePath
 deriving Inhabited
 
 def recBuildModulePrecompTargetWithLocalImports
@@ -205,17 +207,30 @@ def recBuildModulePrecompTargetWithLocalImports
   recBuildModuleWithLocalImports fun pkg mod leanFile contents importTargets => do
     let importSharedLibTargets := importTargets.map (·.info.sharedLibTarget)
     let importTarget ← ActiveTarget.collectOpaqueList <| importTargets.map (·.info.oleanTarget) ++ importSharedLibTargets
-    let loadLibs := importSharedLibTargets.toArray.map (·.info)
+    let loadLibs := importSharedLibTargets.map (·.info)
     let precompiledPath := (← getWorkspace).packageList.map (·.libDir)
     let allDepsTarget := Target.active <| ← depTarget.mixOpaqueAsync importTarget
-    let oleanAndC ← pkg.moduleOleanAndCTargetOnly mod leanFile contents loadLibs precompiledPath allDepsTarget
+    let oleanAndC ← pkg.moduleOleanAndCTargetOnly mod leanFile contents loadLibs.toArray precompiledPath allDepsTarget
     let oleanAndC ← oleanAndC.activate
     let oTarget ← leanOFileTarget (pkg.modToO mod) (Target.active oleanAndC.cTarget) pkg.moreLeancArgs
     let oTarget ← oTarget.activate
+    let moreLoadLibs :=
+      if System.Platform.isWindows then
+        -- we cannot have unresolved symbols on Windows, so we must pass the entire closure to the linker
+        importTargets.bind (·.info.allLoadLibs) |>.eraseDups |>.filter (!loadLibs.contains ·)
+      else
+        -- on other platforms, it is sufficient to link against the direct dependencies,
+        -- which when loaded will trigger loading the entire closure
+        []
+    -- NOTE: we pass `moreLoadLibs` as direct arguments instead of targets,
+    -- which is okay because they are the closure of `importSharedLibTargets`
+    -- and so are already included in those traces
+    let linkArgs := (moreLoadLibs.toArray.map (·.toString) ++ pkg.moreLinkArgs)
     let linkTargets := (oTarget :: importSharedLibTargets).toArray.map Target.active
-    let sharedLibTarget ← leanSharedLibTarget (pkg.modToSharedLib mod) linkTargets pkg.moreLinkArgs
+    let sharedLibTarget ← leanSharedLibTarget (pkg.modToSharedLib mod) linkTargets linkArgs
     let sharedLibTarget ← sharedLibTarget.activate
-    return sharedLibTarget.withInfo { oleanAndC.info with mod, sharedLibTarget }
+    let allLoadLibs := loadLibs ++ moreLoadLibs  -- disjoint by definition
+    return sharedLibTarget.withInfo { oleanAndC.info with mod, sharedLibTarget, allLoadLibs }
 
 def recBuildModuleOleanAndCTargetWithLocalImports
 [Monad m] [MonadLiftT BuildM m] [MonadFunctorT BuildM m] (depTarget : ActiveBuildTarget x)
