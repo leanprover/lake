@@ -198,7 +198,7 @@ structure ActivePrecompModuleTargets extends ActiveOleanAndCTargets where
   mod : Name
   sharedLibTarget : ActiveFileTarget
   -- NOTE: used only on Windows
-  allLoadLibs : List FilePath
+  allLoadLibs : Std.RBTree String compare
 deriving Inhabited
 
 def recBuildModulePrecompTargetWithLocalImports
@@ -214,22 +214,23 @@ def recBuildModulePrecompTargetWithLocalImports
     let oleanAndC ← oleanAndC.activate
     let oTarget ← leanOFileTarget (pkg.modToO mod) (Target.active oleanAndC.cTarget) pkg.moreLeancArgs
     let oTarget ← oTarget.activate
+    let loadLibs := Std.RBTree.ofList <| loadLibs.map (·.toString)
     let moreLoadLibs :=
       if System.Platform.isWindows then
         -- we cannot have unresolved symbols on Windows, so we must pass the entire closure to the linker
-        importTargets.bind (·.info.allLoadLibs) |>.eraseDups |>.filter (!loadLibs.contains ·)
+        importTargets.foldl (Std.RBTree.union · ·.info.allLoadLibs) {} |>.diff loadLibs
       else
         -- on other platforms, it is sufficient to link against the direct dependencies,
         -- which when loaded will trigger loading the entire closure
-        []
+        {}
     -- NOTE: we pass `moreLoadLibs` as direct arguments instead of targets,
     -- which is okay because they are the closure of `importSharedLibTargets`
     -- and so are already included in those traces
-    let linkArgs := (moreLoadLibs.toArray.map (·.toString) ++ pkg.moreLinkArgs)
+    let linkArgs := moreLoadLibs.toArray ++ pkg.moreLinkArgs
     let linkTargets := (oTarget :: importSharedLibTargets).toArray.map Target.active
     let sharedLibTarget ← leanSharedLibTarget (pkg.modToSharedLib mod) linkTargets linkArgs
     let sharedLibTarget ← sharedLibTarget.activate
-    let allLoadLibs := loadLibs ++ moreLoadLibs  -- disjoint by definition
+    let allLoadLibs := moreLoadLibs.union loadLibs
     return sharedLibTarget.withInfo { oleanAndC.info with mod, sharedLibTarget, allLoadLibs }
 
 def recBuildModuleOleanAndCTargetWithLocalImports
