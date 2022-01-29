@@ -214,8 +214,8 @@ def printPaths (imports : List String := []) : CliStateM PUnit := do
       exit 1
     let ws ← loadWorkspace (← getSubArgs)
     let ctx ← mkBuildContext ws lean lake
-    ws.root.buildImportsAndDeps imports |>.run LogMethods.eio ctx
-    IO.println <| Json.compress <| toJson ws.leanPaths
+    let loadDynlibPaths ← ws.root.buildImportsAndDeps imports |>.run LogMethods.eio ctx
+    IO.println <| Json.compress <| toJson { ws.leanPaths with loadDynlibPaths }
   else
     exit noConfigFileCode
 
