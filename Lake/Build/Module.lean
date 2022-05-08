@@ -203,16 +203,16 @@ deriving Inhabited
 
 def recBuildModulePrecompTargetWithLocalImports
 [Monad m] [MonadLiftT BuildM m] [MonadFunctorT BuildM m] (depTarget : ActiveBuildTarget x)
-: RecBuild ModuleInfo (ActiveBuildTarget ActivePrecompModuleTargets) m :=
+: RecBuild Module (ActiveBuildTarget ActivePrecompModuleTargets) m :=
   recBuildModuleWithLocalImports fun pkg mod leanFile contents importTargets => do
     let importSharedLibTargets := importTargets.map (·.info.sharedLibTarget)
     let importTarget ← ActiveTarget.collectOpaqueList <| importTargets.map (·.info.oleanTarget) ++ importSharedLibTargets
     let loadLibs := importSharedLibTargets.map (·.info)
     let precompiledPath := (← getWorkspace).packageList.map (·.libDir)
     let allDepsTarget := Target.active <| ← depTarget.mixOpaqueAsync importTarget
-    let oleanAndC ← pkg.moduleOleanAndCTargetOnly mod leanFile contents loadLibs.toArray precompiledPath allDepsTarget
+    let oleanAndC := pkg.moduleOleanAndCTargetOnly mod leanFile contents loadLibs.toArray precompiledPath allDepsTarget
     let oleanAndC ← oleanAndC.activate
-    let oTarget ← leanOFileTarget (pkg.modToO mod) (Target.active oleanAndC.cTarget) pkg.moreLeancArgs
+    let oTarget := leanOFileTarget (pkg.modToO mod) (Target.active oleanAndC.cTarget) pkg.moreLeancArgs
     let oTarget ← oTarget.activate
     let loadLibs := Std.RBTree.ofList <| loadLibs.map (·.toString)
     let moreLoadLibs :=
@@ -228,7 +228,7 @@ def recBuildModulePrecompTargetWithLocalImports
     -- and so are already included in those traces
     let linkArgs := moreLoadLibs.toArray ++ pkg.moreLinkArgs
     let linkTargets := (oTarget :: importSharedLibTargets).toArray.map Target.active
-    let sharedLibTarget ← leanSharedLibTarget (pkg.modToSharedLib mod) linkTargets linkArgs
+    let sharedLibTarget := leanSharedLibTarget (pkg.modToSharedLib mod) linkTargets linkArgs
     let sharedLibTarget ← sharedLibTarget.activate
     let allLoadLibs := moreLoadLibs.union loadLibs
     return sharedLibTarget.withInfo { oleanAndC.info with mod, sharedLibTarget, allLoadLibs }
