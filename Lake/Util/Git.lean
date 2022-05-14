@@ -17,7 +17,7 @@ def defaultRevision : Option String → String
 def execGit (args : Array String) (repo : Option FilePath := none) : IO PUnit := do
   let child ← IO.Process.spawn {
     cmd := "git", args, cwd := repo,
-    stdout := IO.Process.Stdio.null, stderr := IO.Process.Stdio.null
+    stdout := IO.Process.Stdio.null
   }
   let exitCode ← child.wait
   if exitCode != 0 then
