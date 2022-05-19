@@ -2,3 +2,4 @@
 result*
 # Do not commit the flake lockfile to avoid having to maintain it
 flake.lock
+/examples/**/build/
