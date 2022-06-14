@@ -29,7 +29,7 @@ namespace OpaqueWorkspace
 unsafe def unsafeMk (ws : Workspace) : OpaqueWorkspace :=
   unsafeCast ws
 
-@[implementedBy unsafeMk] constant mk (ws : Workspace) : OpaqueWorkspace
+@[implementedBy unsafeMk] opaque mk (ws : Workspace) : OpaqueWorkspace
 
 instance : Coe Workspace OpaqueWorkspace := ⟨mk⟩
 instance : Inhabited OpaqueWorkspace := ⟨mk Inhabited.default⟩
@@ -37,7 +37,7 @@ instance : Inhabited OpaqueWorkspace := ⟨mk Inhabited.default⟩
 unsafe def unsafeGet (self : OpaqueWorkspace) : Workspace :=
   unsafeCast self
 
-@[implementedBy unsafeGet] constant get (self : OpaqueWorkspace) : Workspace
+@[implementedBy unsafeGet] opaque get (self : OpaqueWorkspace) : Workspace
 
 instance : Coe OpaqueWorkspace Workspace := ⟨get⟩
 
