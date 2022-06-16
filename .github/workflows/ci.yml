@@ -3,7 +3,22 @@ name: CI
 on: [ push, pull_request ]
 
 jobs:
+  skip_check:
+    # continue-on-error: true # Uncomment once integration is finished
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v4
+        with:
+          concurrent_skipping: 'same_content_newer'
+          skip_after_successful_duplicate: 'true'
+          paths_ignore: '["README.md", "LICENSE"]'
+
   build:
+    needs: skip_check
+    if: ${{ needs.skip_check.outputs.should_skip != 'true' }}
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     defaults:
