@@ -4,7 +4,8 @@ on: [ push, pull_request ]
 
 jobs:
   skip_check:
-    # continue-on-error: true # Uncomment once integration is finished
+    name: "Skip Check"
+    continue-on-error: true
     runs-on: ubuntu-latest
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
@@ -19,7 +20,7 @@ jobs:
   build:
     needs: skip_check
     if: ${{ needs.skip_check.outputs.should_skip != 'true' }}
-    name: ${{ matrix.name }}
+    name: ${{ matrix.name || "Build" }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
