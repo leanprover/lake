@@ -19,8 +19,8 @@ jobs:
 
   build:
     needs: skip_check
-    if: ${{ needs.skip_check.outputs.should_skip != 'true' }}
     name: ${{ matrix.name || 'Build' }}
+    if: ${{ needs.skip_check.outputs.should_skip != 'true' }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
