@@ -4,7 +4,7 @@ on: [ push, pull_request ]
 
 jobs:
   skip_check:
-    name: "Skip Check"
+    name: Skip Check
     continue-on-error: true
     runs-on: ubuntu-latest
     outputs:
@@ -20,7 +20,7 @@ jobs:
   build:
     needs: skip_check
     if: ${{ needs.skip_check.outputs.should_skip != 'true' }}
-    name: ${{ matrix.name || "Build" }}
+    name: ${{ matrix.name || 'Build' }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
