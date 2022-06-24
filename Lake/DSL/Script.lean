@@ -9,6 +9,7 @@ import Lake.DSL.DeclUtil
 
 namespace Lake.DSL
 open Lean Parser Command
+open TSyntax.Compat
 
 syntax scriptDeclSpec :=
   ident (ppSpace "(" Term.simpleBinder ")")? (declValSimple <|> declValDo)

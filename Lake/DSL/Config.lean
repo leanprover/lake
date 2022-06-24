@@ -42,7 +42,7 @@ via the Lake command line during the Lakefile's elaboration.
 scoped elab stx:"__args__" : term <= expectedType? => do
   let exp :=
     if let some args := argsExt.getState (← getEnv) then
-      quote args
+      quote (k := `term) args
     else
       -- `id` app forces Lean to show macro's doc rather than the constant's
       Syntax.mkApp (mkCIdentFrom stx ``id) #[mkCIdentFrom stx ``dummyArgs]

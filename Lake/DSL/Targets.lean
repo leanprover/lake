@@ -9,6 +9,7 @@ import Lake.Config.Targets
 
 namespace Lake.DSL
 open Lean Parser Command
+open TSyntax.Compat
 
 --------------------------------------------------------------------------------
 -- # Lean Library & Executable Targets

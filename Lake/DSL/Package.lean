@@ -9,6 +9,7 @@ import Lake.DSL.DeclUtil
 
 namespace Lake.DSL
 open Lean Parser Command
+open TSyntax.Compat
 
 syntax packageDeclWithBinders :=
   (ppSpace "(" Term.simpleBinder ")")? -- dir
