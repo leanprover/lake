@@ -50,7 +50,7 @@ def Module.mkDynlibTarget (self : Module) (oTarget : FileTarget)
     oTarget.bindAsync fun oFile oTrace => do
     libsTarget.bindSync fun libFiles libTrace => do
       buildFileUnlessUpToDate self.dynlibFile (oTrace.mix libTrace) do
-        let args := #[oFile.toString] ++ libDirs.map (s!"-L{·}") ++ libFiles.map (s!"-l:{·}")
+        let args := #[oFile.toString] ++ libDirs.map (s!"-L{·}") ++ libFiles.map toString
         compileSharedLib self.dynlibFile args (← getLeanc)
 
 -- # Recursive Building
