@@ -109,7 +109,7 @@ optionally outputting a `.c` file as well if `c` is set to `true`.
         <| ← imports.mapM (·.recBuildFacet &`lean)
   let depTarget := Target.active <| ← extraDepTarget.mixOpaqueAsync
     <| ← dynlibsTarget.mixOpaqueAsync importTarget
-  let dynlibs := dynlibsTarget.info.map (FilePath.mk s!"lib{·}")
+  let dynlibs := dynlibsTarget.info.map (FilePath.mk s!"lib{·}.{sharedLibExt}")
   let modTarget ← mod.soloTarget dynlibs libDirs.toList depTarget c |>.activate
   store (mod.mkBuildKey &`lean) modTarget
   store (mod.mkBuildKey &`olean) <| modTarget.withInfo mod.oleanFile
