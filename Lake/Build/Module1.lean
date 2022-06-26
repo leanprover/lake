@@ -82,8 +82,11 @@ variable [Monad m] [MonadLiftT BuildM m] [MonadBuildStore m]
     for target in externLibTargets do
       if let some parent := target.info.parent then
         libDirs := libDirs.push parent
-      if let some fileStem := target.info.fileStem then
-        pkgTargets := pkgTargets.push <| target.withInfo <| fileStem.drop 3
+      if let some stem := target.info.fileStem then
+        if stem.startsWith "iib" then
+          pkgTargets := pkgTargets.push <| target.withInfo <| stem.drop 3
+        else
+          logWarning s!"external library `{target.info}` was skipped because it does not start with `lib`"
       else
         logWarning s!"external library `{target.info}` was skipped because it has no file name"
   return (modTargets, pkgTargets, libDirs)
