@@ -62,7 +62,8 @@ def compileLeanModule (leanFile : FilePath)
     env := #[
       ("LEAN_PATH", oleanPath.toString),
       ("PATH", (← getSearchPath "PATH") ++ dynlibPath |>.toString), -- Windows
-      ("LD_LIBRARY_PATH", (← getSearchPath "LD_LIBRARY_PATH") ++ dynlibPath |>.toString) -- Unix
+      ("LD_LIBRARY_PATH", (← getSearchPath "LD_LIBRARY_PATH") ++ dynlibPath |>.toString), -- Unix
+      ("DYLD_LIBRARY_PATH", (← getSearchPath "DYLD_LIBRARY_PATH") ++ dynlibPath |>.toString) -- MacOS
     ]
   }
 
