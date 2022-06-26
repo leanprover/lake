@@ -83,7 +83,7 @@ variable [Monad m] [MonadLiftT BuildM m] [MonadBuildStore m]
       if let some parent := target.info.parent then
         libDirs := libDirs.push parent
       if let some stem := target.info.fileStem then
-        if stem.startsWith "iib" then
+        if stem.startsWith "lib" then
           pkgTargets := pkgTargets.push <| target.withInfo <| stem.drop 3
         else
           logWarning s!"external library `{target.info}` was skipped because it does not start with `lib`"
