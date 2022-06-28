@@ -81,7 +81,7 @@ def LeanLib.recBuildShared (self : LeanLib) : IndexT m ActiveFileTarget := do
 def LeanExe.recBuild (self : LeanExe) : IndexT m ActiveFileTarget := do
   have : MonadLift BuildM m := ⟨liftM⟩
   let (_, imports) ← self.root.imports.recBuild
-  let linkTargets := #[Target.active <| ← self.root.c.recBuild]
+  let linkTargets := #[Target.active <| ← self.root.o.recBuild]
   let mut linkTargets ← imports.foldlM (init := linkTargets) fun arr mod => do
     return arr.push <| Target.active <| ← mod.c.recBuild
   let deps := (← recBuild <| self.pkg.facet &`deps).push self.pkg
