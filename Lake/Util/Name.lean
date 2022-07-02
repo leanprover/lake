@@ -259,15 +259,16 @@ instance : EqOfCmp WfName WfName.quickCmp where
 
 open Syntax in
 set_option linter.unusedVariables.patternVars false in -- false positive on `w`
-protected def quoteFrom (ref : Syntax) : WfName → Term
-| ⟨n, w⟩ => match n with
-  | .anonymous => mkCIdentFrom ref ``anonymous
-  | .str p s _ => mkApp (mkCIdentFrom ref ``mkStr)
-    #[WfName.quoteFrom ref ⟨p, w.elimStr⟩, quote s]
-  | .num p v _ => mkApp (mkCIdentFrom ref ``mkNum)
-    #[WfName.quoteFrom ref ⟨p, w.elimNum⟩, quote v]
+protected def quote (n : WfName) (info := SourceInfo.none) : Term :=
+  match n with
+  | ⟨n, w⟩ => match n with
+    | .anonymous => mkCIdent ``anonymous info
+    | .str p s _ => mkCApp ``mkStr
+      #[WfName.quote ⟨p, w.elimStr⟩ info, quote s info] info
+    | .num p v _ => mkCApp ``mkNum
+      #[WfName.quote ⟨p, w.elimNum⟩ info, quote v info] info
 
-instance : Quote WfName := ⟨WfName.quoteFrom Syntax.missing⟩
+instance : Quote WfName := ⟨fun n i => WfName.quote n i⟩
 
 end WfName
 
@@ -282,7 +283,7 @@ properties that help ensure certain features of Lake work as intended.
 -/
 scoped macro:max (name := wfNameLit) "&" noWs stx:name : term =>
   if let some nm := stx.raw.isNameLit? then
-    return WfName.quoteFrom stx <| WfName.ofName nm
+    return quoteFrom (k := `term) stx <| WfName.ofName nm
   else
     Macro.throwErrorAt stx "ill-formed name literal"
 
@@ -292,11 +293,11 @@ scoped notation "&`✝" => WfName.anonymous
 def unexpandWfNameMkStr : PrettyPrinter.Unexpander
 | `($(_) &`✝ $s) => do
   let some s := s.raw.isStrLit? | throw ()
-  let qn := quote (k := `term) <| Name.mkStr Name.anonymous s
-  `(&$(⟨qn.raw[0]⟩):name)
-| `($(_) &$n:name $s) => do
+  let some n := Name.mkStr Name.anonymous s |>.toNameLit? | throw ()
+  `(&$n)
+| `($(_) &$p:name $s) => do
   let some s := s.raw.isStrLit? | throw ()
-  let some n := n.raw.isNameLit? | throw ()
-  let qn := quote (k := `term) <| Name.mkStr n s
-  `(&$(⟨qn.raw[0]⟩):name)
+  let some p := p.raw.isNameLit? | throw ()
+  let some n := Name.mkStr p s |>.toNameLit? | throw ()
+  `(&$n)
 | _ => throw ()

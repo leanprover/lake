@@ -55,26 +55,26 @@ abbrev BuildData : BuildKey → Type
 scoped macro (name := packageDataDecl) doc?:optional(Parser.Command.docComment)
 "package_data " id:ident " : " ty:term : command => do
   let dty := mkCIdentFrom (← getRef) ``PackageData
-  let key := WfName.quoteFrom id <| WfName.ofName <| id.getId
+  let key := quoteFrom id <| WfName.ofName <| id.getId
   `($[$doc?]? dynamic_data $id : $dty $key := $ty)
 
 /-- Macro for declaring new `ModuleData`. -/
 scoped macro (name := moduleDataDecl) doc?:optional(Parser.Command.docComment)
 "module_data " id:ident " : " ty:term : command => do
   let dty := mkCIdentFrom (← getRef) ``ModuleData
-  let key := WfName.quoteFrom id <| WfName.ofName <| id.getId
+  let key := quoteFrom id <| WfName.ofName <| id.getId
   `($[$doc?]? dynamic_data $id : $dty $key := $ty)
 
 /-- Macro for declaring new `TargetData`. -/
 scoped macro (name := targetDataDecl) doc?:optional(Parser.Command.docComment)
 "target_data " id:ident " : " ty:term : command => do
   let dty := mkCIdentFrom (← getRef) ``TargetData
-  let key := WfName.quoteFrom id <| WfName.ofName <| id.getId
+  let key := quoteFrom id <| WfName.ofName <| id.getId
   `($[$doc?]? dynamic_data $id : $dty $key := $ty)
 
 /-- Macro for declaring new `CustomData`. -/
 scoped macro (name := customDataDecl) doc?:optional(Parser.Command.docComment)
 "custom_data " id:ident " : " ty:term : command => do
   let dty := mkCIdentFrom (← getRef) ``CustomData
-  let key := WfName.quoteFrom id <| WfName.ofName <| id.getId
+  let key := quoteFrom id <| WfName.ofName <| id.getId
   `($[$doc?]? dynamic_data $id : $dty $key := $ty)

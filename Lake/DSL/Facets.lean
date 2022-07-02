@@ -25,7 +25,7 @@ kw:"module_facet " sig:simpleDeclSig : command => do
     let axm := mkIdentFrom id <| ``ModuleData ++ id.getId
     `(module_data $id : ActiveBuildTarget $ty
       $[$doc?]? @[$attrs,*] def $id : ModuleFacetConfig := {
-        name := $(WfName.quoteFrom id (WfName.ofName id.getId))
+        name := $(quoteFrom id (WfName.ofName id.getId))
         resultType := $ty
         build := $defn
         data_eq_target := $axm
@@ -42,7 +42,7 @@ kw:"package_facet " sig:simpleDeclSig : command => do
     let axm := mkIdentFrom id <| ``PackageData ++ id.getId
     `(package_data $id : ActiveBuildTarget $ty
       $[$doc?]? @[$attrs,*] def $id : PackageFacetConfig := {
-        name := $(WfName.quoteFrom id (WfName.ofName id.getId))
+        name := $(quoteFrom id (WfName.ofName id.getId))
         resultType := $ty
         build := $defn
         data_eq_target := $axm
@@ -59,7 +59,7 @@ kw:"target " sig:simpleDeclSig : command => do
     let axm := mkIdentFrom id <| ``CustomData ++ id.getId
     `(custom_data $id : ActiveBuildTarget $ty
       $[$doc?]? @[$attrs,*] def $id : TargetConfig := {
-        name := $(WfName.quoteFrom id (WfName.ofName id.getId))
+        name := $(quoteFrom id (WfName.ofName id.getId))
         resultType := $ty
         target := $defn
         data_eq_target := $axm
