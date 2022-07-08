@@ -15,7 +15,6 @@ abbrev WhereDecls := TSyntax ``Term.whereDecls
 
 abbrev Hole := TSyntax ``Term.hole
 abbrev BinderIdent := TSyntax ``Term.binderIdent
-abbrev SimpleBinder := TSyntax ``Term.simpleBinder
 abbrev FunBinder := TSyntax ``Term.funBinder
 
 instance : Coe Hole BinderIdent where
@@ -24,10 +23,7 @@ instance : Coe Hole BinderIdent where
 instance : Coe Ident BinderIdent where
   coe s := ⟨s.raw⟩
 
-instance : Coe BinderIdent SimpleBinder where
-  coe s := ⟨s.raw⟩
-
-instance : Coe SimpleBinder FunBinder where
+instance : Coe BinderIdent FunBinder where
   coe s := ⟨s.raw⟩
 
 ---
