@@ -79,6 +79,12 @@ package hello {
 
 lean_lib Hello {
   -- add library configuration options here
+  srcDir := "."
+  -- this is the syntax for `Array`
+  roots := #[
+    -- this is the syntax for `Name`
+    `Hello
+  ]
 }
 
 @[defaultTarget]
