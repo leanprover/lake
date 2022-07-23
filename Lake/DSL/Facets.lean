@@ -6,6 +6,7 @@ Authors: Mac Malone
 import Lake.DSL.DeclUtil
 import Lake.Config.FacetConfig
 import Lake.Config.TargetConfig
+import Lake.Build.Index
 
 /-!
 Macros for declaring custom facets and targets.
@@ -26,11 +27,11 @@ kw:"module_facet " sig:simpleDeclSig : command => do
     `(module_data $id : ActiveBuildTarget $ty
       $[$doc?]? @[$attrs,*] def $id : ModuleFacetDecl := {
         name := $name
-        config := {
+        config := mkFacetConfig {
           resultType := ActiveBuildTarget $ty
           build := $defn
           data_eq_result := $axm
-          result_eq_target? := some (.up ⟨$ty, rfl⟩)
+          result_eq_target? := some ⟨$ty, rfl⟩
         }
       })
   | stx => Macro.throwErrorAt stx "ill-formed module facet declaration"
@@ -47,11 +48,11 @@ kw:"package_facet " sig:simpleDeclSig : command => do
     `(package_data $id : ActiveBuildTarget $ty
       $[$doc?]? @[$attrs,*] def $id : PackageFacetDecl := {
         name := $name
-        config := {
+        config := mkFacetConfig {
           resultType := ActiveBuildTarget $ty
           build := $defn
           data_eq_result := $axm
-          result_eq_target? := some (.up ⟨$ty, rfl⟩)
+          result_eq_target? := some ⟨$ty, rfl⟩
         }
       })
   | stx => Macro.throwErrorAt stx "ill-formed package facet declaration"
