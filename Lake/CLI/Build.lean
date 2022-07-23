@@ -39,9 +39,8 @@ def resolveModuleTarget (ws : Workspace) (mod : Module) (facet : Name) : Except 
   else if facet == `dynlib then
     return mod.facetTarget dynlibFacet
   else if let some config := ws.findModuleFacetConfig? facet then
-    if let some (.up ⟨_, h⟩) := config.result_eq_target? then
-      have := config.familyDefTarget h
-      return mod.facetTarget facet
+    if let some target := config.target? then
+      return target (mod.facet facet) rfl
     else
       throw <| CliError.nonTargetFacet "module" facet
   else
@@ -106,9 +105,8 @@ def resolvePackageTarget (ws : Workspace) (pkg : Package) (facet : Name) : Excep
   else if facet == `leanLib then
     return pkg.leanLibTarget.withoutInfo
   else if let some config := ws.findPackageFacetConfig? facet then
-    if let some (.up ⟨_, h⟩) := config.result_eq_target? then
-      have := config.familyDefTarget h
-      return pkg.facet facet |>.target
+    if let some target := config.target? then
+      return target (pkg.facet facet) rfl
     else
       throw <| CliError.nonTargetFacet "package" facet
   else

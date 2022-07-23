@@ -137,14 +137,13 @@ the initial set of Lake package facets (e.g., `extraDep`).
 -/
 
 /-- Recursive build function for anything in the Lake build index. -/
-@[specialize] def recBuildIndex (info : BuildInfo) : IndexT m (BuildData info.key) := do
-  have : MonadLift BuildM m := ⟨liftM⟩
+@[specialize] def recBuildIndex (info : BuildInfo) : IndexT BuildConfigM (BuildData info.key) := do
   match info with
   | .moduleFacet mod facet =>
     if let some build := moduleBuildMap.find? facet then
       build mod
     else if let some config := (← getWorkspace).findModuleFacetConfig? facet then
-      have := config.familyDef
+      have : FamilyDef ModuleData facet (ModuleData facet) := ⟨rfl⟩
       mkModuleFacetBuild config.build mod
     else
       error s!"do not know how to build module facet `{facet}`"
@@ -152,7 +151,7 @@ the initial set of Lake package facets (e.g., `extraDep`).
     if let some build := packageBuildMap.find? facet then
       build pkg
     else if let some config := (← getWorkspace).findPackageFacetConfig? facet then
-      have := config.familyDef
+      have : FamilyDef PackageData facet (PackageData facet) := ⟨rfl⟩
       mkPackageFacetBuild config.build pkg
     else
       error s!"do not know how to build package facet `{facet}`"
@@ -182,7 +181,7 @@ the initial set of Lake package facets (e.g., `extraDep`).
 Recursively build the given info using the Lake build index
 and a topological / suspending scheduler.
 -/
-@[specialize] def buildIndexTop' (info : BuildInfo) : CycleT BuildKey m (BuildData info.key) :=
+@[specialize] def buildIndexTop' (info : BuildInfo) : CycleT BuildKey BuildStoreM (BuildData info.key) :=
   buildDTop BuildData BuildInfo.key recBuildIndex info
 
 /--
@@ -190,8 +189,8 @@ Recursively build the given info using the Lake build index
 and a topological / suspending scheduler and return the dynamic result.
 -/
 @[inline] def buildIndexTop (info : BuildInfo)
-[FamilyDef BuildData info.key α] : CycleT BuildKey m α := do
-  cast (by simp) <| buildIndexTop' (m := m) info
+[FamilyDef BuildData info.key α] : CycleT BuildKey BuildStoreM α := do
+  cast (by simp) <| buildIndexTop' info
 
 end
 
@@ -210,3 +209,29 @@ export BuildInfo (build buildIn)
 @[inline] def BuildInfo.target (self : BuildInfo)
 [FamilyDef BuildData self.key (ActiveBuildTarget α)] : OpaqueTarget :=
   BuildTarget.mk' () <| self.build <&> (·.task)
+
+/-- A facet's declarative configuration. -/
+structure FacetConfig' (DataFam : Name → Type) (ι : Type) (name : Name) : Type 1 where
+  /-- The type of the target's build result. -/
+  resultType : Type
+  /-- The facet's build function. -/
+  build : ι → IndexT BuildConfigM resultType
+  /-- Proof that the facet's build result data type is properly registered. -/
+  data_eq_result : DataFam name = resultType
+   /-- Is this facet a buildable target? -/
+  result_eq_target? : Option <| PSigma fun α => resultType = ActiveBuildTarget α
+
+instance : Inhabited (FacetConfig' DataFam ι name) := ⟨{
+  resultType := DataFam name
+  build := default
+  data_eq_result := rfl
+  result_eq_target? := none
+}⟩
+
+/-- A smart constructor for `FacetConfig`. -/
+def mkFacetConfig (config : FacetConfig' DataFam ι name) : FacetConfig DataFam ι name where
+  build := fun i => config.data_eq_result ▸ config.build i
+  target? := config.result_eq_target?.map fun ⟨α, h⟩ info e =>
+    have : FamilyDef BuildData info.key (ActiveBuildTarget α) :=
+      ⟨e ▸ config.data_eq_result ▸ h⟩
+    info.target
