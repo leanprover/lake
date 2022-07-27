@@ -30,6 +30,7 @@ structure LakeOptions where
   configOpts : NameMap String := {}
   subArgs : List String := []
   wantsHelp : Bool := false
+  verbose : Bool := false
 
 /-- Get the Lean installation. Error if missing. -/
 def LakeOptions.getLeanInstall (opts : LakeOptions) : Except CliError LeanInstall :=
@@ -60,6 +61,7 @@ def LakeOptions.mkLoadConfig
     configFile := opts.rootDir / opts.configFile
     configOpts := opts.configOpts
     leanOpts := Lean.Options.empty
+    verbose := opts.verbose
     updateDeps
   }
 
@@ -119,18 +121,20 @@ def setConfigOpt (kvPair : String) : CliM PUnit :=
 
 def lakeShortOption : (opt : Char) → CliM PUnit
 | 'h' => modifyThe LakeOptions ({· with wantsHelp := true})
+| 'v' => modifyThe LakeOptions ({· with verbose := true})
 | 'd' => do let rootDir ← takeOptArg "-d" "path"; modifyThe LakeOptions ({· with rootDir})
 | 'f' => do let configFile ← takeOptArg "-f" "path"; modifyThe LakeOptions ({· with configFile})
 | 'K' => do setConfigOpt <| ← takeOptArg "-K" "key-value pair"
 | opt => throw <| CliError.unknownShortOption opt
 
 def lakeLongOption : (opt : String) → CliM PUnit
-| "--help"  => modifyThe LakeOptions ({· with wantsHelp := true})
-| "--dir"   => do let rootDir ← takeOptArg "--dir" "path"; modifyThe LakeOptions ({· with rootDir})
-| "--file"  => do let configFile ← takeOptArg "--file" "path"; modifyThe LakeOptions ({· with configFile})
-| "--lean"  => do setLean <| ← takeOptArg "--lean" "path or command"
-| "--"      => do let subArgs ← takeArgs; modifyThe LakeOptions ({· with subArgs})
-| opt       => throw <| CliError.unknownLongOption opt
+| "--help"    => modifyThe LakeOptions ({· with wantsHelp := true})
+| "--verbose" => modifyThe LakeOptions ({· with verbose := true})
+| "--dir"     => do let rootDir ← takeOptArg "--dir" "path"; modifyThe LakeOptions ({· with rootDir})
+| "--file"    => do let configFile ← takeOptArg "--file" "path"; modifyThe LakeOptions ({· with configFile})
+| "--lean"    => do setLean <| ← takeOptArg "--lean" "path or command"
+| "--"        => do let subArgs ← takeArgs; modifyThe LakeOptions ({· with subArgs})
+| opt         => throw <| CliError.unknownLongOption opt
 
 def lakeOption :=
   option {
@@ -175,9 +179,9 @@ def printPaths (config : LoadConfig) (imports : List String := []) : MainM PUnit
     if (← IO.getEnv invalidConfigEnvVar) matches some .. then
       IO.eprintln s!"Error parsing '{configFile}'.  Please restart the lean server after fixing the Lake configuration file."
       exit 1
-    let ws ← loadWorkspace config
+    let ws ← loadWorkspace config |>.run config.verbose
     let ctx ← mkBuildContext ws
-    let dynlibs ← ws.root.buildImportsAndDeps imports |>.run MonadLog.eio ctx
+    let dynlibs ← ws.root.buildImportsAndDeps imports |>.run (MonadLog.eio ws.verbose) ctx
     IO.println <| Json.compress <| toJson {ws.leanPaths with loadDynlibPaths := dynlibs}
   else
     exit noConfigFileCode
@@ -204,7 +208,7 @@ def exe (name : Name) (args  : Array String := #[]) : LakeT IO UInt32 := do
   let ws ← getWorkspace
   if let some exe := ws.findLeanExe? name then
     let ctx ← mkBuildContext ws
-    let exeFile ← (exe.build >>= (·.await)).run MonadLog.eio ctx
+    let exeFile ← (exe.build >>= (·.await)).run (MonadLog.eio ws.verbose) ctx
     env exeFile.toString args
   else
     error s!"unknown executable `{name}`"
@@ -235,7 +239,7 @@ protected def list : CliM PUnit := do
   processOptions lakeOption
   let config ← mkLoadConfig (← getThe LakeOptions)
   noArgsRem do
-    let ws ← loadWorkspace config
+    let ws ← loadWorkspace config |>.run config.verbose
     ws.packageMap.forM fun _ pkg => do
       let pkgName := pkg.name.toString (escape := false)
       pkg.scripts.forM fun name _ =>
@@ -246,7 +250,7 @@ protected nonrec def run : CliM PUnit := do
   processOptions lakeOption
   let spec ← takeArg "script name"; let args ← takeArgs
   let config ← mkLoadConfig (← getThe LakeOptions)
-  let ws ← loadWorkspace config
+  let ws ← loadWorkspace config |>.run config.verbose
   let (pkg, scriptName) ← parseScriptSpec ws spec
   if let some script := pkg.scripts.find? scriptName then
     exit <| ← script.run args |>.run {
@@ -260,7 +264,7 @@ protected def doc : CliM PUnit := do
   let spec ← takeArg "script name"
   let config ← mkLoadConfig (← getThe LakeOptions)
   noArgsRem do
-    let ws ← loadWorkspace config
+    let ws ← loadWorkspace config |>.run config.verbose
     let (pkg, scriptName) ← parseScriptSpec ws spec
     if let some script := pkg.scripts.find? scriptName then
       match script.doc? with
@@ -287,28 +291,28 @@ protected def new : CliM PUnit := do
   processOptions lakeOption
   let pkgName ← takeArg "package name"
   let template ← parseTemplateSpec <| (← takeArg?).getD ""
-  noArgsRem <| new pkgName template
+  noArgsRem <| new pkgName template |>.run (← getThe LakeOptions).verbose
 
 protected def init : CliM PUnit := do
   processOptions lakeOption
   let pkgName ← takeArg "package name"
   let template ← parseTemplateSpec <| (← takeArg?).getD ""
-  noArgsRem <| init pkgName template
+  noArgsRem <| init pkgName template |>.run (← getThe LakeOptions).verbose
 
 protected def build : CliM PUnit := do
   processOptions lakeOption
   let opts ← getThe LakeOptions
   let config ← mkLoadConfig opts
-  let ws ← loadWorkspace config
+  let ws ← loadWorkspace config |>.run config.verbose
   let targetSpecs ← takeArgs
   let specs ← parseTargetSpecs ws targetSpecs
   let ctx ← mkBuildContext ws
-  BuildM.run MonadLog.io ctx <| buildSpecs specs
+  BuildM.run (MonadLog.io ws.verbose) ctx <| buildSpecs specs
 
 protected def update : CliM PUnit := do
   processOptions lakeOption
   let config ← mkLoadConfig (← getThe LakeOptions) (updateDeps := true)
-  noArgsRem <| discard <| loadWorkspace config
+  noArgsRem <| discard <| loadWorkspace config |>.run config.verbose
 
 protected def printPaths : CliM PUnit := do
   processOptions lakeOption
@@ -318,7 +322,7 @@ protected def printPaths : CliM PUnit := do
 protected def clean : CliM PUnit := do
   processOptions lakeOption
   let config ← mkLoadConfig (← getThe LakeOptions)
-  noArgsRem (← loadWorkspace config).root.clean
+  noArgsRem (← loadWorkspace config |>.run config.verbose).root.clean
 
 protected def script : CliM PUnit := do
   if let some cmd ← takeArg? then
@@ -335,19 +339,19 @@ protected def serve : CliM PUnit := do
   let opts ← getThe LakeOptions
   let args := opts.subArgs.toArray
   let config ← mkLoadConfig opts
-  noArgsRem do exit <| ← serve config args
+  noArgsRem do exit <| ← serve config args |>.run config.verbose
 
 protected def env : CliM PUnit := do
   let cmd ← takeArg "command"; let args ← takeArgs
   let config ← mkLoadConfig (← getThe LakeOptions)
-  let ws ← loadWorkspace config
+  let ws ← loadWorkspace config |>.run config.verbose
   let ctx := mkLakeContext ws
   exit <| ← (env cmd args.toArray).run ctx
 
 protected def exe : CliM PUnit := do
   let exeName ← takeArg "executable name"; let args ← takeArgs
   let config ← mkLoadConfig (← getThe LakeOptions)
-  let ws ← loadWorkspace config
+  let ws ← loadWorkspace config |>.run config.verbose
   let ctx := mkLakeContext ws
   exit <| ← (exe exeName args.toArray).run ctx
 

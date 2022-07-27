@@ -25,6 +25,8 @@ structure LoadConfig where
   configOpts : NameMap String := {}
   /-- The Lean options with which to elaborate the configuration file. -/
   leanOpts : Options := {}
+  /-- True if Lake should print additional information about executed commands. -/
+  verbose : Bool := false
   /--
   Whether to update dependencies during resolution
   or fallback to the ones listed in the manifest.

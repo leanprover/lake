@@ -16,7 +16,7 @@ def proc (args : IO.Process.SpawnArgs) : JobM Unit := do
   let envStr := String.join <| args.env.toList.filterMap fun (k, v) =>
     if k == "PATH" then none else some s!"{k}={v.getD ""} " -- PATH too big
   let cmdStr := " ".intercalate (args.cmd :: args.args.toList)
-  logInfo <| "> " ++ envStr ++
+  logVerbose <| "> " ++ envStr ++
     match args.cwd with
     | some cwd => s!"{cmdStr}    # in directory {cwd}"
     | none     => cmdStr

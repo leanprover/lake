@@ -30,6 +30,8 @@ structure Workspace : Type where
   packageFacetConfigs : DNameMap PackageFacetConfig
   /-- Name-configuration map of library facets defined in the workspace. -/
   libraryFacetConfigs : DNameMap LibraryFacetConfig
+  /-- True if Lake should print additional information while building this workspace. -/
+  verbose : Bool := false
   deriving Inhabited
 
 hydrate_opaque_type OpaqueWorkspace Workspace
