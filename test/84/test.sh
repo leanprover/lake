@@ -19,7 +19,7 @@ pushd b
 cat >>lakefile.lean <<EOF
 require a from git "../a" @ "master"
 EOF
-$LAKE1 update
+$LAKE1 update -v
 git add .
 git config user.name test
 git config user.email test@example.com
