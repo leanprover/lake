@@ -33,12 +33,13 @@ def proc (args : IO.Process.SpawnArgs) : JobM Unit := do
     logError s!"external command {args.cmd} exited with status {out.exitCode}"
     failure
 
-def compileLeanModule (leanFile : FilePath)
+def compileLeanModule (name : Name) (leanFile : FilePath)
 (oleanFile? ileanFile? cFile? : Option FilePath)
 (leanPath : SearchPath := []) (rootDir : FilePath := ".")
 (dynlibs : Array FilePath := #[]) (dynlibPath : SearchPath := {})
 (leanArgs : Array String := #[]) (lean : FilePath := "lean")
 : JobM PUnit := do
+  logAuxInfo s!"Building {name}"
   let mut args := leanArgs ++
     #[leanFile.toString, "-R", rootDir.toString]
   if let some oleanFile := oleanFile? then
@@ -61,32 +62,36 @@ def compileLeanModule (leanFile : FilePath)
     ]
   }
 
-def compileO (oFile srcFile : FilePath)
+def compileO (name : Name) (oFile srcFile : FilePath)
 (moreArgs : Array String := #[]) (compiler : FilePath := "cc") : JobM Unit := do
+  logAuxInfo s!"Compiling {name}"
   createParentDirs oFile
   proc {
     cmd := compiler.toString
     args := #["-c", "-o", oFile.toString, srcFile.toString] ++ moreArgs
   }
 
-def compileStaticLib (libFile : FilePath)
+def compileStaticLib (name : Name) (libFile : FilePath)
 (oFiles : Array FilePath) (ar : FilePath := "ar") : JobM Unit := do
+  logAuxInfo s!"Linking {name}"
   createParentDirs libFile
   proc {
     cmd := ar.toString
     args := #["rcs", libFile.toString] ++ oFiles.map toString
   }
 
-def compileSharedLib (libFile : FilePath)
+def compileSharedLib (name : Name) (libFile : FilePath)
 (linkArgs : Array String) (linker : FilePath := "cc") : JobM Unit := do
+  logAuxInfo s!"Linking {name}"
   createParentDirs libFile
   proc {
     cmd := linker.toString
     args := #["-shared", "-o", libFile.toString] ++ linkArgs
   }
 
-def compileExe (binFile : FilePath) (linkFiles : Array FilePath)
+def compileExe (name : Name) (binFile : FilePath) (linkFiles : Array FilePath)
 (linkArgs : Array String := #[]) (linker : FilePath := "cc") : JobM Unit := do
+  logAuxInfo s!"Linking {name}"
   createParentDirs binFile
   proc {
     cmd := linker.toString

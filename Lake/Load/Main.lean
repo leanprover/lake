@@ -73,7 +73,7 @@ def loadWorkspace (config : LoadConfig) : LogIO Workspace := do
   Lean.searchPathRef.set config.env.leanSearchPath
   let root ← loadPkg config.rootDir config.configOpts config.leanOpts config.configFile
   let ws : Workspace := {
-    root, lakeEnv := config.env, verbose := config.verbose
+    root, lakeEnv := config.env, verbosity := config.verbosity
     moduleFacetConfigs := initModuleFacetConfigs
     packageFacetConfigs := initPackageFacetConfigs
     libraryFacetConfigs := initLibraryFacetConfigs

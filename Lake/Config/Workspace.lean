@@ -7,6 +7,7 @@ import Lean.Util.Paths
 import Lake.Config.FacetConfig
 import Lake.Config.TargetConfig
 import Lake.Config.Env
+import Lake.Util.Log
 
 open System
 open Lean (LeanPaths)
@@ -30,8 +31,8 @@ structure Workspace : Type where
   packageFacetConfigs : DNameMap PackageFacetConfig
   /-- Name-configuration map of library facets defined in the workspace. -/
   libraryFacetConfigs : DNameMap LibraryFacetConfig
-  /-- True if Lake should print additional information while building this workspace. -/
-  verbose : Bool := false
+  /-- The verbosity setting for logging messages. -/
+  verbosity : Verbosity := .normal
   deriving Inhabited
 
 hydrate_opaque_type OpaqueWorkspace Workspace
