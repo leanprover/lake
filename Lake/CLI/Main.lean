@@ -79,6 +79,9 @@ def CliM.run (self : CliM α) (args : List String) : BaseIO ExitCode := do
   let main := main.run >>= fun | .ok a => pure a | .error e => error e.toString
   main.run
 
+instance : MonadLift LogIO CliStateM :=
+  ⟨fun x => do MainM.runLogIO x (← get).verbosity⟩
+
 /-! ## Argument Parsing -/
 
 def takeArg (arg : String) : CliM String := do
@@ -181,9 +184,9 @@ def printPaths (config : LoadConfig) (imports : List String := []) : MainM PUnit
     if (← IO.getEnv invalidConfigEnvVar) matches some .. then
       IO.eprintln s!"Error parsing '{configFile}'.  Please restart the lean server after fixing the Lake configuration file."
       exit 1
-    let ws ← loadWorkspace config |>.run config.verbosity
+    let ws ← MainM.runLogIO (loadWorkspace config) config.verbosity
     let ctx ← mkBuildContext ws
-    let dynlibs ← ws.root.buildImportsAndDeps imports |>.run (MonadLog.eio ws.verbosity) ctx
+    let dynlibs ← ws.root.buildImportsAndDeps imports |>.run (MonadLog.eio config.verbosity) ctx
     IO.println <| Json.compress <| toJson {ws.leanPaths with loadDynlibPaths := dynlibs}
   else
     exit noConfigFileCode
@@ -206,11 +209,11 @@ def serve (config : LoadConfig) (args : Array String) : LogIO UInt32 := do
     env := extraEnv
   }).wait
 
-def exe (name : Name) (args  : Array String := #[]) : LakeT IO UInt32 := do
+def exe (name : Name) (args  : Array String := #[]) (verbosity : Verbosity) : LakeT IO UInt32 := do
   let ws ← getWorkspace
   if let some exe := ws.findLeanExe? name then
     let ctx ← mkBuildContext ws
-    let exeFile ← (exe.build >>= (·.await)).run (MonadLog.eio ws.verbosity) ctx
+    let exeFile ← (exe.build >>= (·.await)).run (MonadLog.eio verbosity) ctx
     env exeFile.toString args
   else
     error s!"unknown executable `{name}`"
@@ -241,7 +244,7 @@ protected def list : CliM PUnit := do
   processOptions lakeOption
   let config ← mkLoadConfig (← getThe LakeOptions)
   noArgsRem do
-    let ws ← loadWorkspace config |>.run config.verbosity
+    let ws ← loadWorkspace config
     ws.packageMap.forM fun _ pkg => do
       let pkgName := pkg.name.toString (escape := false)
       pkg.scripts.forM fun name _ =>
@@ -252,7 +255,7 @@ protected nonrec def run : CliM PUnit := do
   processOptions lakeOption
   let spec ← takeArg "script name"; let args ← takeArgs
   let config ← mkLoadConfig (← getThe LakeOptions)
-  let ws ← loadWorkspace config |>.run config.verbosity
+  let ws ← loadWorkspace config
   let (pkg, scriptName) ← parseScriptSpec ws spec
   if let some script := pkg.scripts.find? scriptName then
     exit <| ← script.run args |>.run {
@@ -266,7 +269,7 @@ protected def doc : CliM PUnit := do
   let spec ← takeArg "script name"
   let config ← mkLoadConfig (← getThe LakeOptions)
   noArgsRem do
-    let ws ← loadWorkspace config |>.run config.verbosity
+    let ws ← loadWorkspace config
     let (pkg, scriptName) ← parseScriptSpec ws spec
     if let some script := pkg.scripts.find? scriptName then
       match script.doc? with
@@ -293,28 +296,28 @@ protected def new : CliM PUnit := do
   processOptions lakeOption
   let pkgName ← takeArg "package name"
   let template ← parseTemplateSpec <| (← takeArg?).getD ""
-  noArgsRem <| new pkgName template |>.run (← getThe LakeOptions).verbosity
+  noArgsRem <| MainM.runLogIO (new pkgName template) (← getThe LakeOptions).verbosity
 
 protected def init : CliM PUnit := do
   processOptions lakeOption
   let pkgName ← takeArg "package name"
   let template ← parseTemplateSpec <| (← takeArg?).getD ""
-  noArgsRem <| init pkgName template |>.run (← getThe LakeOptions).verbosity
+  noArgsRem <| MainM.runLogIO (init pkgName template) (← getThe LakeOptions).verbosity
 
 protected def build : CliM PUnit := do
   processOptions lakeOption
   let opts ← getThe LakeOptions
   let config ← mkLoadConfig opts
-  let ws ← loadWorkspace config |>.run config.verbosity
+  let ws ← loadWorkspace config
   let targetSpecs ← takeArgs
   let specs ← parseTargetSpecs ws targetSpecs
   let ctx ← mkBuildContext ws
-  BuildM.run (MonadLog.io ws.verbosity) ctx <| buildSpecs specs
+  BuildM.run (MonadLog.io config.verbosity) ctx <| buildSpecs specs
 
 protected def update : CliM PUnit := do
   processOptions lakeOption
   let config ← mkLoadConfig (← getThe LakeOptions) (updateDeps := true)
-  noArgsRem <| discard <| loadWorkspace config |>.run config.verbosity
+  noArgsRem <| discard <| loadWorkspace config
 
 protected def printPaths : CliM PUnit := do
   processOptions lakeOption
@@ -324,7 +327,7 @@ protected def printPaths : CliM PUnit := do
 protected def clean : CliM PUnit := do
   processOptions lakeOption
   let config ← mkLoadConfig (← getThe LakeOptions)
-  noArgsRem (← loadWorkspace config |>.run config.verbosity).root.clean
+  noArgsRem (← loadWorkspace config).root.clean
 
 protected def script : CliM PUnit := do
   if let some cmd ← takeArg? then
@@ -341,21 +344,21 @@ protected def serve : CliM PUnit := do
   let opts ← getThe LakeOptions
   let args := opts.subArgs.toArray
   let config ← mkLoadConfig opts
-  noArgsRem do exit <| ← serve config args |>.run config.verbosity
+  noArgsRem do exit <| ← serve config args
 
 protected def env : CliM PUnit := do
   let cmd ← takeArg "command"; let args ← takeArgs
   let config ← mkLoadConfig (← getThe LakeOptions)
-  let ws ← loadWorkspace config |>.run config.verbosity
+  let ws ← loadWorkspace config
   let ctx := mkLakeContext ws
   exit <| ← (env cmd args.toArray).run ctx
 
 protected def exe : CliM PUnit := do
   let exeName ← takeArg "executable name"; let args ← takeArgs
   let config ← mkLoadConfig (← getThe LakeOptions)
-  let ws ← loadWorkspace config |>.run config.verbosity
+  let ws ← loadWorkspace config
   let ctx := mkLakeContext ws
-  exit <| ← (exe exeName args.toArray).run ctx
+  exit <| ← (exe exeName args.toArray config.verbosity).run ctx
 
 protected def selfCheck : CliM PUnit := do
   processOptions lakeOption

@@ -76,7 +76,7 @@ instance : MonadError MainM := ⟨MainM.error⟩
 instance [ToString ε] : MonadLift (EIO ε) MainM := ⟨MonadError.runEIO⟩
 instance : MonadLift IO MainM := inferInstance -- necessary, but don't know why
 
-def _root_.Lake.LogIO.run (x : LogIO α) (verbosity := Verbosity.normal) : MainM α :=
+def runLogIO (x : LogIO α) (verbosity := Verbosity.normal) : MainM α :=
   liftM <| MonadLogT.run (MonadLog.eio verbosity) x
 
-instance : MonadLift LogIO MainM := ⟨LogIO.run⟩
+instance : MonadLift LogIO MainM := ⟨runLogIO⟩

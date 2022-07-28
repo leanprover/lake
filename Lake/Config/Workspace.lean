@@ -31,8 +31,6 @@ structure Workspace : Type where
   packageFacetConfigs : DNameMap PackageFacetConfig
   /-- Name-configuration map of library facets defined in the workspace. -/
   libraryFacetConfigs : DNameMap LibraryFacetConfig
-  /-- The verbosity setting for logging messages. -/
-  verbosity : Verbosity := .normal
   deriving Inhabited
 
 hydrate_opaque_type OpaqueWorkspace Workspace
