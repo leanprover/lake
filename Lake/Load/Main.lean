@@ -49,12 +49,7 @@ def resolveDep (packagesDir : FilePath) (pkg : Package) (dep : Dependency)
   let depManifest ← Manifest.loadOrEmpty depPkg.manifestFile
   for depEntry in depManifest do
     if let some entry := (← get).find? depEntry.name then
-      let shouldUpdate :=
-        match entry.inputRev?, depEntry.inputRev? with
-        | none,     none     => entry.rev != depEntry.rev
-        | none,     some _   => false
-        | some _,   none     => false
-        | some rev, some dep => rev = dep ∧ entry.rev ≠ depEntry.rev
+      let shouldUpdate := entry.rev ≠ depEntry.rev
       let contributors := entry.contributors.insert depPkg.name depEntry.toPersistentPackageEntry
       modify (·.insert {entry with contributors, shouldUpdate})
     else
