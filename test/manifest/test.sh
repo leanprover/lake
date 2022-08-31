@@ -93,7 +93,7 @@ popd
 
 # issue 119
 pushd b
-sed_i "s/master/$(env --chdir=../a git rev-parse HEAD)/" lakefile.lean
+sed_i "s/master/$(git -C ../a rev-parse HEAD)/" lakefile.lean
 $LAKE update -v
 git commit -am 'third commit in b'
 popd
