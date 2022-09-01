@@ -92,10 +92,17 @@ git diff --exit-code
 popd
 
 # issue 119
+pushd a
+git checkout -b main
+popd
 pushd b
-sed_i "s/master/$(git -C ../a rev-parse HEAD)/" lakefile.lean
+sed_i 's/master/main/' lakefile.lean
 $LAKE update -v
 git commit -am 'third commit in b'
+popd
+pushd a
+sed_i 's/third commit/fourth commit/' A.lean
+git commit -am 'fourth commit in a'
 popd
 pushd d
 sed_i '/require c/d' lakefile.lean
