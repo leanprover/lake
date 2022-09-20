@@ -58,7 +58,9 @@ jobs:
         echo "$HOME/.elan/bin" >> $GITHUB_PATH
     - name: Install Elan (MacOS)
       if: matrix.os == 'macOS-latest'
-      run: brew install elan
+      run: |
+        brew update
+        brew install elan-init
     - name: Checkout
       uses: actions/checkout@v2
     - name: Check Lean
