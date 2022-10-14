@@ -16,7 +16,7 @@ def LeanLib.recBuildLocalModules
   let mut modSet := ModuleSet.empty
   let mods ← self.getModuleArray
   for mod in mods do
-    let (_, mods) ← mod.imports.fetch
+    let mods ← mod.transImports
     let mods := mods.push mod
     for mod in mods do
       if self.isLocalModule mod.name then
@@ -58,7 +58,7 @@ def LeanLib.recBuildLinks
   let mut modSet := ModuleSet.empty
   let mods ← self.getModuleArray
   for mod in mods do
-    let (_, mods) ← mod.imports.fetch
+    let mods ← mod.transImports
     let mods := mods.push mod
     for mod in mods do
       unless modSet.contains mod do

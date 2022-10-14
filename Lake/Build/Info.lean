@@ -144,9 +144,9 @@ Defined here because they need to import configurations, whereas the definitions
 there need to be imported by configurations.
 -/
 
-/-- The direct × transitive imports of the Lean module. -/
+/-- The direct imports of the Lean module. -/
 abbrev Module.importFacet := `lean.imports
-module_data lean.imports : Array Module × Array Module
+module_data lean.imports : Array Module
 
 /-- The package's complete array of transitive dependencies. -/
 abbrev Package.depsFacet := `deps

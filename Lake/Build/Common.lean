@@ -115,3 +115,14 @@ def computeDynlibOfShared
         error s!"shared library `{sharedLib}` does not start with `lib`; this is not supported on Unix"
     else
       error s!"shared library `{sharedLib}` has no file name"
+
+partial def Module.transImports (mod : Module) : IndexBuildM (Array Module) :=
+  StateT.run' (σ := Lean.HashSet Module) (s := {}) do
+    go mod
+    return (← get).toArray
+where
+  go (mod : Module) := do
+    for mod in ← mod.imports.fetch do
+      if (← get).contains mod then continue
+      modify (·.insert mod)
+      go mod

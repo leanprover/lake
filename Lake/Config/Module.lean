@@ -20,6 +20,9 @@ structure Module where
   keyName : Name := name
   deriving Inhabited
 
+instance : Hashable Module where hash m := hash m.name
+instance : BEq Module where beq m n := m.name == n.name
+
 abbrev ModuleSet := RBTree Module (·.name.quickCmp ·.name)
 @[inline] def ModuleSet.empty : ModuleSet := RBTree.empty
 

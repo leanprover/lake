@@ -61,7 +61,7 @@ def recBuildPrecompileDynlibs (pkg : Package) (imports : Array Module)
   let mut jobs := #[]
   for imp in imports do
     if imp.shouldPrecompile then
-      let (_, transImports) ← imp.imports.fetch
+      let transImports ← imp.transImports
       for mod in transImports.push imp do
         unless pkgSet.contains mod.pkg do
           pkgSet := pkgSet.insert mod.pkg
@@ -89,7 +89,7 @@ def Module.recBuildLean (mod : Module) (art : LeanArtifact)
   let leanOnly := mod.isLeanOnly ∧ art ≠ .c
 
   -- Compute and build dependencies
-  let (imports, _) ← mod.imports.fetch
+  let imports ← mod.imports.fetch
   let extraDepJob ← mod.pkg.extraDep.fetch
   let (modJobs, externJobs, libDirs) ← recBuildPrecompileDynlibs mod.pkg imports
   let importJob ← BuildJob.mixArray <| ← imports.mapM (·.leanBin.fetch)
@@ -162,27 +162,20 @@ def Module.oFacetConfig : ModuleFacetConfig oFacet :=
 
 /--
 Recursively parse the Lean files of a module and its imports
-building an `Array` product of its direct and transitive local imports.
+building an `Array` product of its direct local imports.
 -/
 def Module.recParseImports (mod : Module)
-: IndexBuildM (Array Module × Array Module) := do
-  let mut transImports := #[]
+: IndexBuildM (Array Module) := do
   let mut directImports := #[]
-  let mut importSet := ModuleSet.empty
+  let mut importSet : Lean.HashSet Module := ∅
   let contents ← IO.FS.readFile mod.leanFile
   let (imports, _, _) ← Lean.Elab.parseImports contents mod.leanFile.toString
   for imp in imports do
     if let some mod ← findModule? imp.module then
-      let (_, impTransImports) ← mod.imports.fetch
-      for transImp in impTransImports do
-        unless importSet.contains transImp do
-          importSet := importSet.insert transImp
-          transImports := transImports.push transImp
       unless importSet.contains mod do
         importSet := importSet.insert mod
-        transImports := transImports.push mod
       directImports := directImports.push mod
-  return (directImports, transImports)
+  return directImports
 
 /-- The `ModuleFacetConfig` for the builtin `importFacet`. -/
 def Module.importFacetConfig : ModuleFacetConfig importFacet :=
@@ -205,7 +198,7 @@ def recBuildDynlibs (pkg : Package) (imports : Array Module)
 def Module.recBuildDynlib (mod : Module) : IndexBuildM (BuildJob String) := do
 
   -- Compute dependencies
-  let (_, transImports) ← mod.imports.fetch
+  let transImports ← mod.transImports
   let linkJobs ← mod.nativeFacets.mapM (fetch <| mod.facet ·.name)
   let (modJobs, externJobs, pkgLibDirs) ← recBuildDynlibs mod.pkg transImports
 
