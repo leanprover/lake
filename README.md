@@ -7,6 +7,8 @@ Each `lakefile.lean` includes a `package` declaration (akin to `main`) which def
 
 ***This README provides information about Lake relative to the current commit. If you are looking for documentation for the Lake version shipped with a given Lean nightly, you should look at the README of that version.***
 
+*This particular branch of Lake, `lean4-master`, aims to mirror the Lake version embedded as a submodule of the [lean4](https://github.com/leanprover/lean4) repository. Changes there should trickle down here soon after.*
+
 ## Table of Contents
 
 * [Getting Lake](#getting-lake)
