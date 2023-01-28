@@ -143,12 +143,16 @@ def Module.recBuildLeanCore (mod : Module)
     modDynlibsJob.bindAsync fun modDynlibs modTrace => do
     externDynlibsJob.bindSync fun externDynlibs externTrace => do
       let depTrace := importTrace.mix <| modTrace.mix externTrace
+      /-
+      Requirements:
+      * Lean wants the external library symbols before module symbols.
+      * Unix requires the file extension of the dynlib.
+      * For some reason, building from the Lean server requires full paths.
+        Everything else loads fine with just the augmented library path.
+      * Linux still needs the augmented path to resolve nested dependencies in dynlibs.
+      -/
       let dynlibPath := libDirs ++ externDynlibs.filterMap (·.dir?) |>.toList
-      -- NOTE: Lean wants the external library symbols before module symbols
-      -- NOTE: Unix requires the full file name of the dynlib (Windows doesn't care)
-      let dynlibs :=
-        externDynlibs.map (.mk <| nameToSharedLib ·.name) ++
-        modDynlibs.map (.mk <| nameToSharedLib ·.name)
+      let dynlibs := externDynlibs.map (·.path) ++ modDynlibs.map (·.path)
       let trace ← mod.buildUnlessUpToDate dynlibPath dynlibs depTrace leanOnly
       return ((), trace)
 
