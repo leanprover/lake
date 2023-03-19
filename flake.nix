@@ -32,7 +32,8 @@
       };
     in
     {
-      packages = project // {
+      inherit project;
+      packages = {
         inherit (leanPkgs) lean;
         cli = cli.executable;
         default = cli.executable;
