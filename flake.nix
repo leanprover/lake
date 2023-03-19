@@ -2,55 +2,50 @@
   description = "Lake (Lean Make) is a new build system and package manager for Lean 4.";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.05";
-    lean = {
-      url = "github:leanprover/lean4";
-    };
-    flake-utils = {
-      url = "github:numtide/flake-utils";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    lean.url = "github:leanprover/lean4";
+    nixpkgs.follows = "lean/nixpkgs";
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs =
-    { self
-    , flake-utils
+    { flake-utils
     , nixpkgs
     , lean
+    , ...
     }:
     flake-utils.lib.eachDefaultSystem (system:
     let
-      pkgs = import nixpkgs { inherit system; };
+      pkgs = nixpkgs.legacyPackages.${system};
       packageName = "Lake";
       src = ./.;
       leanPkgs = lean.packages.${system};
       project = leanPkgs.buildLeanPackage {
-        name = packageName;
         inherit src;
+        name = packageName;
       };
       cli = leanPkgs.buildLeanPackage {
+        inherit src;
         name = "Lake.Main";
         executableName = "lake";
         deps = [ project ];
         linkFlags = pkgs.lib.optional pkgs.stdenv.isLinux "-rdynamic";
-        inherit src;
       };
     in
     {
       packages = project // {
         inherit (leanPkgs) lean;
-
         cli = cli.executable;
+        default = cli.executable;
       };
 
-      defaultPackage = self.packages.${system}.cli;
-
-      apps.lake = flake-utils.lib.mkApp {
-        drv = cli.executable;
+      apps = rec {
+        lake = flake-utils.lib.mkApp { drv = cli.executable; };
+        default = lake;
       };
 
-      defaultApp = self.apps.${system}.lake;
-
-      inherit (project) devShell;
+      devShells = rec {
+        lake = project.devShell;
+        default = lake;
+      };
     });
 }
