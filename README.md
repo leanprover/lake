@@ -94,7 +94,7 @@ lean_exe «hello» {
 }
 ```
 
-The command `lake build` can then be used to build the package (and its [dependencies](#adding-dependencies), if it has them) into a native executable. The result will be placed in `build/bin`.
+The command `lake build` can then be used to build the package (and its [dependencies](#adding-dependencies), if it has them) into a native executable. The result will be placed in `build/bin`. The command `lake clean` deletes `build`.
 
 ```
 $ lake build
@@ -107,7 +107,7 @@ Examples of different package configurations can be found in the [`examples`](ex
 
 ## Glossary of Terms
 
-Lake uses a lot of terms common in software development -- like workspace, package, library, executable, target, etc. -- and some more esoteric onces -- like facet. However, whether common or not these terms mean different things to different people, so it is important to elucidiate how Lake defines these terms:
+Lake uses a lot of terms common in software development -- like workspace, package, library, executable, target, etc. -- and some more esoteric ones -- like facet. However, whether common or not, these terms mean different things to different people, so it is important to elucidate how Lake defines these terms:
 
 * A **package** is the **fundamental unit of code distribution in Lake**.  Packages can be sourced from the local file system or downloaded from the web (e.g., via Git). The `package` declaration in package's lakefile names it and [defines its basic properties](#package-configuration-options).
 
@@ -125,7 +125,7 @@ Lake uses a lot of terms common in software development -- like workspace, packa
 
 * An **external library** is a native (static) library built from foreign code (e.g., C) that is required by a package's Lean code in order to function (e.g., because it uses `@[extern]` to invoke code written in a foreign language). An `extern_lib` target is used to inform Lake of such a requirement and instruct Lake on how to build requisite library. Lake then automatically links the external library when appropriate to give the Lean code access to the foreign functions (or, more technically, the foreign symbols) it needs. See the [External Libraries section](#external-libraries) for more details.
 
-* A **target** is the **fundamental build unit of Lake**. A package can defining any number of targets. Each target has a name, which is used to instruct Lake to build the target (e.g., through `lake buld <target>`) and to keep track internally of a target's build status.  Lake defines a set of builtin target types -- [Lean libraries](#lean-libraries), [binary executables](#binary-executables), and [external libraries](#external-libraries) -- but a user can [define their own custom targets as well](#custom-targets). Complex types (e.g., packages, libraries, modules) have multiple facets, each of which count as separate buildable targets. See the [Defining Build Targets section](#defining-build-targets) for more details.
+* A **target** is the **fundamental build unit of Lake**. A package can defining any number of targets. Each target has a name, which is used to instruct Lake to build the target (e.g., through `lake build <target>`) and to keep track internally of a target's build status.  Lake defines a set of builtin target types -- [Lean libraries](#lean-libraries), [binary executables](#binary-executables), and [external libraries](#external-libraries) -- but a user can [define their own custom targets as well](#custom-targets). Complex types (e.g., packages, libraries, modules) have multiple facets, each of which count as separate buildable targets. See the [Defining Build Targets section](#defining-build-targets) for more details.
 
 * A **facet** is an element built from another organizational unit (e.g., a package, module, library, etc.). For instance, Lake produces `olean`, `ilean`, `c`, and `o` files all from a single module. Each of these components are thus termed a *facet* of the module. Similarly, Lake can build both static and shared binaries from a library. Thus, libraries have both `static` and `shared` facets. Lake also allows users to define their own custom facets to build from modules and packages, but this feature is currently experimental and not yet documented.
 
@@ -141,14 +141,13 @@ Lake provides a large assortment of configuration options for packages.
 * `manifestFile`: The path of a package's manifest file, which stores the exact versions of its resolved dependencies. Defaults to `lake-manifest.json`.
 * `srcDir`: The directory containing the package's Lean source files. Defaults to the package's directory. (This will be passed to `lean` as the `-R` option.)
 * `buildDir`: The directory to which Lake should output the package's build results. Defaults to `build`.
-* `oleanDir`: The build subdirectory to which Lake should output the package's `.olean` files. Defaults to `lib`.
-* `irDir`: The build subdirectory to which Lake should output the package's intermediary results (e.g., `.c` and `.o` files). Defaults to `ir`.
-* `libDir`: The build subdirectory to which Lake should output the package's libraries. Defaults to `lib`.
+* `oleanDir`: The build subdirectory to which Lake should output the package's binary Lean libraries (i.e., `.olean`, `.ilean` files). Defaults to `lib`.
+* `irDir`: The build subdirectory to which Lake should output the package's intermediary results (e.g., `.c`, `.o` files). Defaults to `ir`.
+* `libDir`: The build subdirectory to which Lake should output the package's native libraries (e.g., `.a`, `.so`, `.dll` files). Defaults to `lib`.
 * `binDir`: The build subdirectory to which Lake should output the package's binary executables. Defaults to `bin`.
 
 ### Build & Run
 
-* `isLeanOnly`: Whether the package is "Lean-only". A Lean-only package does not produce native files for modules (e.g. `.c`, `.o`). Defaults to `false`. Setting `precompileModules` to `true` will override this setting and produce native files anyway (as they are needed to build module dynlibs).
 * `precompileModules`:  Whether to compile each module into a native shared library that is loaded whenever the module is imported. This speeds up the evaluation of metaprograms and enables the interpreter to run functions marked `@[extern]`. Defaults to `false`.
 * `moreServerArgs`:  Additional arguments to pass to the Lean language server (i.e., `lean --server`) launched by `lake serve`.
 * `buildType`: The `BuildType` of targets in the package (see [`CMAKE_BUILD_TYPE`](https://stackoverflow.com/a/59314670)). One of `debug`, `relWithDebInfo`, `minSizeRel`, or `release`. Defaults to `release`.

@@ -78,9 +78,6 @@ abbrev pkg (self : Module) : Package :=
 @[inline] def cFile (self : Module) : FilePath :=
   self.irPath "c"
 
-@[inline] def cTraceFile (self : Module) : FilePath :=
-  self.irPath "c.trace"
-
 @[inline] def oFile (self : Module) : FilePath :=
   self.irPath "o"
 
@@ -108,9 +105,6 @@ abbrev pkg (self : Module) : Package :=
 
 @[inline] def nativeFacets (self : Module) : Array (ModuleFacet (BuildJob FilePath)) :=
   self.lib.nativeFacets
-
-@[inline] def isLeanOnly (self : Module) : Bool :=
-  self.pkg.isLeanOnly && !self.shouldPrecompile
 
 /-! ## Trace Helpers -/
 

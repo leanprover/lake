@@ -204,16 +204,19 @@ protected def list : CliM PUnit := do
 
 protected nonrec def run : CliM PUnit := do
   processOptions lakeOption
-  let spec ← takeArg "script name"; let args ← takeArgs
   let config ← mkLoadConfig (← getThe LakeOptions)
   let ws ← loadWorkspace config
-  let (pkg, scriptName) ← parseScriptSpec ws spec
-  if let some script := pkg.scripts.find? scriptName then
-    exit <| ← script.run args |>.run {
-      opaqueWs := ws
-    }
-  else do
-    throw <| CliError.unknownScript scriptName
+  if let some spec ← takeArg? then
+    let args ← takeArgs
+    let (pkg, scriptName) ← parseScriptSpec ws spec
+    if let some script := pkg.scripts.find? scriptName then
+        exit <| ← script.run args |>.run {opaqueWs := ws}
+    else do
+      throw <| CliError.unknownScript scriptName
+  else
+    for script in ws.root.defaultScripts do
+      exitIfErrorCode <| ← script.run [] |>.run {opaqueWs := ws}
+    exit 0
 
 protected def doc : CliM PUnit := do
   processOptions lakeOption
@@ -296,7 +299,7 @@ protected def printPaths : CliM PUnit := do
 protected def clean : CliM PUnit := do
   processOptions lakeOption
   let config ← mkLoadConfig (← getThe LakeOptions)
-  noArgsRem do (← loadWorkspace config).root.clean
+  noArgsRem do (← loadWorkspace config).clean
 
 protected def script : CliM PUnit := do
   if let some cmd ← takeArg? then
