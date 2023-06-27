@@ -39,6 +39,14 @@ def nameToArchive (name? : Option String) : String :=
   | none => archiveSuffix
   | some name => s!"{name}-{archiveSuffix}"
 
+/--
+First tries to convert a string into a legal name.
+If that fails, defaults to making it a simple name (e.g., `Lean.Name.mkSimple`).
+Currently used for package and target names taken from the CLI.
+-/
+def stringToLegalOrSimpleName (s : String) : Name :=
+  if s.toName.isAnonymous then Lean.Name.mkSimple s else s.toName
+
 --------------------------------------------------------------------------------
 /-! # Defaults -/
 --------------------------------------------------------------------------------
@@ -299,6 +307,10 @@ def release? (self : Package) : Option (String × String) := do
 /-- The package's `moreLeanArgs` configuration. -/
 @[inline] def moreLeanArgs (self : Package) : Array String :=
   self.config.moreLeanArgs
+
+/-- The package's `weakLeanArgs` configuration. -/
+@[inline] def weakLeanArgs (self : Package) : Array String :=
+  self.config.weakLeanArgs
 
 /-- The package's `moreLeancArgs` configuration. -/
 @[inline] def moreLeancArgs (self : Package) : Array String :=
