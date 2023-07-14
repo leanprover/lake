@@ -20,7 +20,7 @@ structure Workspace : Type where
   /-- The detect `Lake.Env` of the workspace. -/
   lakeEnv : Lake.Env
   /-- Name-package map of packages within the workspace. -/
-  packageMap : NameMap Package := {}
+  packageMap : DNameMap NPackage := {}
   /-- Name-configuration map of module facets defined in the workspace. -/
   moduleFacetConfigs : DNameMap ModuleFacetConfig
   /-- Name-configuration map of package facets defined in the workspace. -/
@@ -58,19 +58,19 @@ namespace Workspace
 
 /-- The `List` of packages to the workspace. -/
 def packageList (self : Workspace) : List Package :=
-  self.packageMap.revFold (fun pkgs _ pkg => pkg :: pkgs) []
+  self.packageMap.revFold (fun pkgs _ pkg => pkg.toPackage :: pkgs) []
 
 /-- The `Array` of packages to the workspace. -/
 def packageArray (self : Workspace) : Array Package :=
-  self.packageMap.fold (fun pkgs _ pkg => pkgs.push pkg) #[]
+  self.packageMap.fold (fun pkgs _ pkg => pkgs.push pkg.toPackage) #[]
 
 /-- Add a package to the workspace. -/
 def addPackage (pkg : Package) (self : Workspace) : Workspace :=
   {self with packageMap := self.packageMap.insert pkg.name pkg}
 
 /-- Try to find a package within the workspace with the given name. -/
-@[inline] def findPackage? (pkg : Name) (self : Workspace) : Option Package :=
-  self.packageMap.find? pkg
+@[inline] def findPackage? (name : Name) (self : Workspace) : Option (NPackage name) :=
+  self.packageMap.find? name
 
 /-- Check if the module is local to any package in the workspace. -/
 def isLocalModule (mod : Name) (self : Workspace) : Bool :=
@@ -126,7 +126,7 @@ def addLibraryFacetConfig (cfg : LibraryFacetConfig name) (self : Workspace) : W
 
 /-- The workspace's binary Lean library paths (which are added to `LEAN_PATH`). -/
 def leanPath (self : Workspace) : SearchPath :=
-  self.packageList.map (·.oleanDir)
+  self.packageList.map (·.leanLibDir)
 
 /-- The workspace's  source directories (which are added to `LEAN_SRC_PATH`). -/
 def leanSrcPath (self : Workspace) : SearchPath :=
@@ -137,7 +137,7 @@ The workspace's shared library path (e.g., for `--load-dynlib`).
 This is added to the `sharedLibPathEnvVar` by `lake env`.
 -/
 def sharedLibPath (self : Workspace) : SearchPath :=
-  self.packageList.map (·.libDir)
+  self.packageList.map (·.nativeLibDir)
 
 /--
 The detected `LEAN_PATH` of the environment
@@ -181,6 +181,4 @@ def augmentedEnvVars (self : Workspace) : Array (String × Option String) :=
 
 /-- Remove all packages' build outputs (i.e., delete their build directories). -/
 def clean (self : Workspace) : IO Unit := do
-  for (_, pkg) in self.packageMap do
-    pkg.clean
-  self.root.clean
+  self.packageMap.forM fun _ pkg => pkg.clean

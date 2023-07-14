@@ -11,6 +11,25 @@ open System
 
 namespace Lake
 
+/-- Fetch the build result of a module facet. -/
+@[inline] protected def ModuleFacetDecl.fetch (mod : Module)
+(self : ModuleFacetDecl) [FamilyOut ModuleData self.name α] : IndexBuildM α := do
+  fetch <| mod.facet self.name
+
+/-- Fetch the build job of a module facet. -/
+def ModuleFacetConfig.fetchJob (mod : Module)
+(self : ModuleFacetConfig name) : IndexBuildM (BuildJob Unit) :=  do
+  let some getJob := self.getJob?
+    | error "module facet '{self.name}' has no associated build job"
+  return getJob <| ← fetch <| mod.facet self.name
+
+/-- Fetch the build job of a module facet. -/
+def Module.fetchFacetJob
+(name : Name) (self : Module) : IndexBuildM (BuildJob Unit) :=  do
+  let some config := (← getWorkspace).moduleFacetConfigs.find? name
+    | error "library facet '{name}' does not exist in workspace"
+  inline <| config.fetchJob self
+
 def Module.buildUnlessUpToDate (mod : Module)
 (dynlibPath : SearchPath) (dynlibs : Array FilePath)
 (depTrace : BuildTrace) : BuildM PUnit := do
@@ -36,7 +55,7 @@ def recBuildExternDynlibs (pkgs : Array Package)
   let mut libDirs := #[]
   let mut jobs : Array (BuildJob Dynlib) := #[]
   for pkg in pkgs do
-    libDirs := libDirs.push pkg.libDir
+    libDirs := libDirs.push pkg.nativeLibDir
     jobs := jobs.append <| ← pkg.externLibs.mapM (·.dynlib.fetch)
   return (jobs, libDirs)
 
@@ -104,11 +123,8 @@ def Module.recComputePrecompileImports (mod : Module) : IndexBuildM (Array Modul
 def Module.precompileImportsFacetConfig : ModuleFacetConfig precompileImportsFacet :=
   mkFacetConfig (·.recComputePrecompileImports)
 
-/--
-Recursively build a module and its (transitive, local) imports.
--/
-private def Module.recBuildLeanCore (mod : Module) : IndexBuildM (BuildJob Unit) := do
-  -- Compute and build dependencies
+/-- Recursively build a module's transitive local imports and shared library dependencies. -/
+def Module.recBuildDeps (mod : Module) : IndexBuildM (BuildJob (SearchPath × Array FilePath)) := do
   let imports ← mod.imports.fetch
   let extraDepJob ← mod.pkg.extraDep.fetch
   let precompileImports ← mod.precompileImports.fetch
@@ -123,7 +139,7 @@ private def Module.recBuildLeanCore (mod : Module) : IndexBuildM (BuildJob Unit)
   extraDepJob.bindAsync fun _ _ => do
   importJob.bindAsync fun _ importTrace => do
   modDynlibsJob.bindAsync fun modDynlibs modTrace => do
-  externDynlibsJob.bindSync fun externDynlibs externTrace => do
+  return externDynlibsJob.mapWithTrace fun externDynlibs externTrace =>
     let depTrace := importTrace.mix <| modTrace.mix externTrace
     /-
     Requirements:
@@ -135,6 +151,15 @@ private def Module.recBuildLeanCore (mod : Module) : IndexBuildM (BuildJob Unit)
     -/
     let dynlibPath := libDirs ++ externDynlibs.filterMap (·.dir?) |>.toList
     let dynlibs := externDynlibs.map (·.path) ++ modDynlibs.map (·.path)
+    ((dynlibPath, dynlibs), depTrace)
+
+/-- The `ModuleFacetConfig` for the builtin `depsFacet`. -/
+def Module.depsFacetConfig : ModuleFacetConfig depsFacet :=
+  mkFacetJobConfigSmall (·.recBuildDeps)
+
+/-- Recursively build a module and its dependencies. -/
+def Module.recBuildLeanCore (mod : Module) : IndexBuildM (BuildJob Unit) := do
+  (← mod.deps.fetch).bindSync fun (dynlibPath, dynlibs) depTrace => do
     mod.buildUnlessUpToDate dynlibPath dynlibs depTrace
     return ((), depTrace)
 
@@ -220,6 +245,7 @@ def initModuleFacetConfigs : DNameMap ModuleFacetConfig :=
   |>.insert importsFacet importsFacetConfig
   |>.insert transImportsFacet transImportsFacetConfig
   |>.insert precompileImportsFacet precompileImportsFacetConfig
+  |>.insert depsFacet depsFacetConfig
   |>.insert leanBinFacet leanBinFacetConfig
   |>.insert importBinFacet importBinFacetConfig
   |>.insert oleanFacet oleanFacetConfig

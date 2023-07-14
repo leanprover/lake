@@ -9,14 +9,14 @@ import Lake.Build.Data
 /-!
 # Simple Builtin Facet Declarations
 
-This module declares most of the builtin facets an targets and
-their build data builtin facets and targets. Some of these definitions
-are needed for configurations, so we define them here before we need to
-import said configurations for `BuildInfo`.
+This module contains the definitions of most of the builtin facets.
+The others are defined `Build.Info`. The facets there require configuration
+definitions (e.g., `Module`), and some of the facets here are used in said
+definitions.
 -/
 
 namespace Lake
-export System (FilePath)
+export System (SearchPath FilePath)
 
 /-- A dynamic/shared library for linking. -/
 structure Dynlib where
@@ -42,8 +42,16 @@ structure ModuleFacet (α) where
 instance (facet : ModuleFacet α) : FamilyDef ModuleData facet.name α :=
   ⟨facet.data_eq⟩
 
-instance [FamilyDef ModuleData facet α] : CoeDep Name facet (ModuleFacet α) :=
-  ⟨facet, family_key_eq_type⟩
+instance [FamilyOut ModuleData facet α] : CoeDep Name facet (ModuleFacet α) :=
+  ⟨facet, FamilyOut.family_key_eq_type⟩
+
+/--
+The facet which builds all of a module's dependencies
+(i.e., transitive local imports and `--load-dynlib` shared libraries).
+Returns the list of shared libraries to load along with their search path.
+-/
+abbrev Module.depsFacet := `deps
+module_data deps : BuildJob (SearchPath × Array FilePath)
 
 /--
 The core compilation / elaboration of the Lean file via `lean`,
@@ -56,7 +64,7 @@ module_data bin : BuildJob Unit
 /--
 The `leanBinFacet` combined with the module's trace
 (i.e., the trace of its `olean` and `ilean`).
-It is the facet used for building Lean imports of a module.
+It is the facet used for building a Lean import of a module.
 -/
 abbrev Module.importBinFacet := `importBin
 module_data importBin : BuildJob Unit
@@ -83,7 +91,7 @@ module_data o : BuildJob FilePath
 abbrev Package.releaseFacet := `release
 package_data release : BuildJob Unit
 
-/-- The package's `extraDepTarget` mixed with its transitive dependencies. -/
+/-- The package's `extraDepTarget` mixed with its transitive dependencies'. -/
 abbrev Package.extraDepFacet := `extraDep
 package_data extraDep : BuildJob Unit
 
