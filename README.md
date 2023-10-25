@@ -1,3 +1,7 @@
+# REPOSITORY DEPRECATION NOTICE
+
+**Lake has been merged into the [main Lean repository](https://github.com/leanprover/lean4) (at the time of writing, in [src/lake](https://github.com/leanprover/lean4/tree/master/src/lake)). This repository exists solely as an archive of its state prior to that merge.**
+
 # Lake
 
 Lake (Lean Make) is a new build system and package manager for Lean 4.
